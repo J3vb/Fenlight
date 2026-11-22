@@ -95,6 +95,7 @@ async function show() {
   const newest = state.newest;
   const installed = state.installed[0];
   cancelButton.hidden = !state.busy;
+  if (!state.busy) playButton.style.setProperty("--done", "0%");
   action = installed ? "play" : "install";
   if (state.auto_update && tried === newest.version && !state.busy) action = "retry";
   playButton.disabled = state.busy || (!installed && !state.update_ready);
@@ -148,7 +149,9 @@ listen("started_again", () => {
 listen("progress", (event) => {
   const { done, total } = event.payload;
   progressBar.value = total > 0 ? Math.floor((done * 100) / total) : 0;
-  playText.textContent = progressBar.value >= 100 ? "Checking" : `Installing ${progressBar.value}%`;
+  playButton.style.setProperty("--done", `${progressBar.value}%`);
+  playText.textContent = progressBar.value >= 100 ? "Checking" : "Installing";
+  diskUsed.textContent = total > 0 ? `${progressBar.value}% · ${gigabytes(done)} of ${gigabytes(total)}` : "";
 });
 
 listen("finished", (event) => {
