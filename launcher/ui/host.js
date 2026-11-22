@@ -15,6 +15,7 @@
   const closeAsk = document.getElementById("close-ask");
 
   let running = null;
+  let stopping = false;
   let loaded = false;
 
   function showStatus(text, isError) {
@@ -36,10 +37,13 @@
     }
     const wasRunning = running;
     running = state.running;
+    if (!running) stopping = false;
     portInput.disabled = playersSelect.disabled = Boolean(running);
     toggle.textContent = running ? "Stop server" : "Start server";
     toggle.disabled = !running && !state.installed;
-    if (running) {
+    if (stopping) {
+      showStatus("Stopping the server…");
+    } else if (running) {
       showStatus(`Server v${running} is running on port ${portInput.value}. Join it from Servers in the game.`);
     } else if (wasRunning) {
       showStatus("The server stopped.");
@@ -55,7 +59,7 @@
     try {
       if (running) {
         await invoke("host_stop");
-        showStatus("Stopping the server…");
+        stopping = true;
       } else {
         await invoke("host_start", { port: Number(portInput.value), maxPlayers: Number(playersSelect.value) });
       }
@@ -75,6 +79,7 @@
     closeAsk.hidden = true;
   });
   document.getElementById("close-stop").addEventListener("click", () => {
+    stopping = true;
     showStatus("Stopping the server…");
     invoke("quit");
   });

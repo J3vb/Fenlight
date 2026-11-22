@@ -2,7 +2,7 @@
 //! installed game, and keep it updated between matches (docs/plans/separate-launcher.md,
 //! step 4).
 
-use crate::Launcher;
+use crate::{Finished, Launcher, Progress};
 use launcher_core::feed;
 use launcher_core::host::Tick;
 use launcher_core::log;
@@ -32,7 +32,7 @@ pub fn host_status(launcher: State<'_, Launcher>) -> Result<HostStatus, String> 
 /// Takes one lock at a time: `Launcher::installer` locks the host too, and locking it twice
 /// on the window's thread froze the launcher on start (v0.1.0).
 fn host_state(launcher: &Launcher) -> Result<HostStatus, String> {
-    let installed = launcher.installer().installed().into_iter().next();
+    let installed = launcher.installed().into_iter().next();
     let running = launcher.hosting();
     let saved = launcher.settings.lock().map_err(|error| error.to_string())?.clone();
     Ok(HostStatus {
@@ -53,7 +53,7 @@ pub fn host_start(launcher: State<'_, Launcher>, port: u16, max_players: u8) -> 
         saved.save(&launcher.data_dir)?;
     }
     let installer = launcher.installer();
-    let version = installer
+    let version = launcher
         .installed()
         .into_iter()
         .next()
@@ -87,16 +87,24 @@ pub fn open_logs(launcher: State<'_, Launcher>) -> Result<(), String> {
     crate::pages::open(&dir.display().to_string())
 }
 
-/// Closes the launcher, stopping a running server first (it gets 10 seconds to save).
+/// Closes the launcher, stopping a running server first (it gets 10 seconds to save). The
+/// wait runs off the window's thread, so the window keeps painting "Stopping the server".
 #[tauri::command]
-pub fn quit(app: AppHandle, launcher: State<'_, Launcher>) -> Result<(), String> {
-    let mut host = launcher.host.lock().map_err(|error| error.to_string())?;
+pub fn quit(app: AppHandle) {
+    std::thread::spawn(move || {
+        stop_server(&app.state::<Launcher>());
+        app.exit(0);
+    });
+}
+
+fn stop_server(launcher: &Launcher) {
+    let Ok(mut host) = launcher.host.lock() else {
+        return;
+    };
     if host.running().is_some() {
         host.stop_and_wait(Duration::from_secs(10));
         log::write(&launcher.data_dir, "info", "server_exited", "launcher closed");
     }
-    app.exit(0);
-    Ok(())
 }
 
 /// Runs for the launcher's lifetime: every second it lets the host drain or restart the
@@ -107,7 +115,7 @@ pub fn watch(app: AppHandle) {
         std::thread::sleep(Duration::from_secs(1));
         let launcher = app.state::<Launcher>();
         let installer = launcher.installer();
-        let newest = installer.installed().into_iter().next();
+        let newest = launcher.installed().into_iter().next();
         let exe = newest.as_deref().map(|version| installer.exe_path(version));
         let tick = match launcher.host.lock() {
             Ok(mut host) => host.tick(exe.as_deref().zip(newest.as_deref())),
@@ -131,14 +139,16 @@ pub fn watch(app: AppHandle) {
         if since_check >= UPDATE_CHECK {
             since_check = Duration::ZERO;
             let app = app.clone();
-            std::thread::spawn(move || install_newer(&app.state::<Launcher>()));
+            std::thread::spawn(move || install_newer(&app));
         }
     }
 }
 
 /// Fetches the release list and installs a newer game on the player's channel next to the
-/// running server. The next tick then drains the server onto it.
-fn install_newer(launcher: &Launcher) {
+/// running server. The next tick then drains the server onto it. Sends the same `progress`
+/// and `finished` events as a Play install, so the bottom bar and Cancel follow it.
+fn install_newer(app: &AppHandle) {
+    let launcher = app.state::<Launcher>();
     let list = match feed::fetch(&launcher.api_url) {
         Ok(list) => list,
         Err(problem) => {
@@ -153,14 +163,33 @@ fn install_newer(launcher: &Launcher) {
     let Some(release) = launcher.newest() else {
         return;
     };
-    if !feed::is_newer(&release.version, &installer.installed()) || launcher.busy.swap(true, Ordering::Relaxed) {
+    if !feed::is_newer(&release.version, &launcher.installed()) || launcher.busy.swap(true, Ordering::Relaxed) {
         return;
     }
-    match installer.install(&release, &launcher.cancel, &mut |_, _| {}) {
-        Ok(_) => log::write(&launcher.data_dir, "info", "installed", &release.version),
-        Err(problem) => log::write(&launcher.data_dir, "warn", "install_failed", &problem),
-    }
+    launcher.cancel.store(false, Ordering::Relaxed);
+    let mut last_percent = u64::MAX;
+    let mut report = |done: u64, total: u64| {
+        let percent = (done * 100).checked_div(total).unwrap_or(0);
+        if percent != last_percent {
+            last_percent = percent;
+            let _ = app.emit("progress", Progress { done, total });
+        }
+    };
+    let finished = match installer.install(&release, &launcher.cancel, &mut report) {
+        Ok(_) => {
+            log::write(&launcher.data_dir, "info", "installed", &release.version);
+            Finished {
+                ok: true,
+                message: format!("Installed v{} for the server.", release.version),
+            }
+        }
+        Err(message) => {
+            log::write(&launcher.data_dir, "warn", "install_failed", &message);
+            Finished { ok: false, message }
+        }
+    };
     launcher.busy.store(false, Ordering::Relaxed);
+    let _ = app.emit("finished", finished);
 }
 
 #[cfg(test)]
