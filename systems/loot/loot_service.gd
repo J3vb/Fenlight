@@ -3,6 +3,9 @@ class_name LootService
 extends Node
 
 const DROP: PackedScene = preload("res://systems/loot/loot_drop.tscn")
+## Early-run boost: zombies drop loot at least this often up to EARLY_ROUNDS, so a run finds gear before round 5.
+const EARLY_ROUNDS: int = 5
+const EARLY_CHANCE: float = 0.05
 
 var session: GameSession
 var pack: Pack = Pack.new()
@@ -148,11 +151,13 @@ func _rarity(enemy: EnemyData, luck: float) -> StringName:
 	return rarity
 
 
-## The enemy's own chance when it sets one, else the zombie round curve.
+## The enemy's own chance when it sets one, else the zombie round curve with the early-run boost.
 static func drop_chance(enemy: EnemyData, round_number: int) -> float:
 	if enemy.loot_drop_chance >= 0.0:
 		return enemy.loot_drop_chance
-	return minf(0.015 + maxi(round_number, 1) * 0.001, 0.05)
+	if round_number <= EARLY_ROUNDS:
+		return EARLY_CHANCE
+	return minf(0.015 + round_number * 0.001, 0.05)
 
 
 static func eligible_bases(character_level: int, rarity: StringName) -> Array[Resource]:

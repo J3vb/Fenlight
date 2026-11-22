@@ -21,7 +21,7 @@ const KIND_CRATE: int = 1
 const CHAIN_CHANCE: float = 0.25
 const CHAIN_OFFSET: Vector3 = Vector3(0.8, 0.0, 0.0)
 
-@export var drop_chance: float = 0.025
+@export var drop_chance: float = 0.05
 @export var max_per_round: int = 4
 @export var power_ups: Array[PowerUpData] = []
 @export var ammo_pack: PowerUpData

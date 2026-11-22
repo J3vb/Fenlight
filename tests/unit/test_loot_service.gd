@@ -85,13 +85,24 @@ func test_round_sets_item_level_and_caps_at_fifty() -> void:
 
 
 func test_source_chances_follow_enemy_data() -> void:
-	for round_number: int in [1, 10, 40]:
+	for round_number: int in [6, 10, 40]:
 		var curve: float = minf(0.015 + round_number * 0.001, 0.05)
 		assert_almost_eq(LootService.drop_chance(WALKER, round_number), curve, 0.0001, "walker round curve")
-	assert_almost_eq(LootService.drop_chance(WALKER, 1), 0.016, 0.0001)
+	for round_number: int in [1, 3, 5]:
+		assert_eq(LootService.drop_chance(WALKER, round_number), LootService.EARLY_CHANCE, "early-run boost")
+	assert_almost_eq(LootService.drop_chance(WALKER, 6), 0.021, 0.0001)
 	assert_almost_eq(LootService.drop_chance(WALKER, 100), 0.05, 0.0001)
 	assert_eq(LootService.drop_chance(BLOATER, 1), 0.05)
 	assert_eq(LootService.drop_chance(BLOATER, 40), 0.05)
+
+
+## Bug: a solo run to round 5 often found no gear (about 0.8 expected drops); the boost makes several likely.
+func test_a_solo_run_finds_several_items_by_round_5() -> void:
+	var rules: WaveRules = load("res://content/waves/default_waves.tres") as WaveRules
+	var expected: float = 0.0
+	for round_number: int in range(1, 6):
+		expected += rules.get_enemy_count(round_number) * LootService.drop_chance(WALKER, round_number)
+	assert_gt(expected, 3.0, "expected loot drops in rounds 1-5")
 
 
 func test_enemy_with_unknown_id_uses_its_own_chance_and_rarity_floor() -> void:
