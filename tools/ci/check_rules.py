@@ -85,6 +85,10 @@ LITERALS = re.compile(r""""((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|#.*""")
 RPC_MODES = ("authority", "any_peer")
 RPC_TRANSFERS = ("reliable", "unreliable", "unreliable_ordered")
 LOG_WARN = re.compile(r"""Log\.warn\(\s*&?["'](\w+)["']\s*,\s*&?["'](\w+)["']""")
+SCENE_NODE = re.compile(
+    r'^\[node name="([^"]+)"(?:[^\]]*?parent="([^"]*)")?(?:[^\]]*?instance=ExtResource\("([^"]+)"\))?'
+)
+SCENE_EDITABLE = re.compile(r'^\[editable path="([^"]+)"\]')
 STRINGS = re.compile(r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#.*""")
 
 
@@ -496,6 +500,39 @@ def check_decisions_short(root: Path) -> list[str]:
     return errors
 
 
+def scene_nodes(lines: list[str]) -> tuple[list[tuple[int, str, str, bool]], set, set]:
+    """Nodes as (line, path, parent, declared), the instanced node paths and the editable paths."""
+    nodes, instances, editable = [], set(), set()
+    for number, line in enumerate(lines, 1):
+        if match := SCENE_EDITABLE.match(line):
+            editable.add(match[1])
+        if not (match := SCENE_NODE.match(line)) or match[2] is None:
+            continue
+        path = match[1] if match[2] == "." else f"{match[2]}/{match[1]}"
+        if match[3]:
+            instances.add(path)
+        nodes.append((number, path, match[2], bool(match[3]) or " type=" in line))
+    return nodes, instances, editable
+
+
+def check_instance_children_editable(root: Path) -> list[str]:
+    errors = []
+    for path, lines in text_files(root, suffixes=(".tscn",)):
+        nodes, instances, editable = scene_nodes(lines)
+        declared = {node_path for _, node_path, _, own in nodes if own}
+        flagged = set()
+        for number, _, parent, own in nodes:
+            owner = parent
+            while owner not in declared | {"."} and "/" in owner:
+                owner = owner.rsplit("/", 1)[0]
+            inside = owner in instances and (owner != parent or not own)
+            if inside and owner not in editable | flagged:
+                flagged.add(owner)
+                message = f'node inside instance "{owner}" needs [editable path="{owner}"] or export drops it'
+                errors.append(problem(path, number, "instance-children-editable", message))
+    return errors
+
+
 RULES = [
     check_core_no_features,
     check_content_is_data,
@@ -517,6 +554,7 @@ RULES = [
     check_rpc_rules,
     check_log_catalogue,
     check_decisions_short,
+    check_instance_children_editable,
 ]
 
 

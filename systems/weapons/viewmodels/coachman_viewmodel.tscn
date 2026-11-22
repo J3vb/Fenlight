@@ -48,3 +48,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.137, 0.01)
 
 [node name="CharmMount" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.039, 0.010, -0.237)
+
+[editable path="Coachman"]

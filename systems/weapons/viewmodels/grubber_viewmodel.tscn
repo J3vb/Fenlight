@@ -45,3 +45,5 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.01, -0.037, -0.15)
 
 [node name="SleeveLeft" parent="." instance=ExtResource("sleeve_left")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, -0.137, 0.01)
+
+[editable path="Grubber"]

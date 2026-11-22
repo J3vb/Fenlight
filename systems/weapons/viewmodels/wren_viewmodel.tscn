@@ -18,3 +18,5 @@ omni_range = 6.0
 [node name="FlashMesh" parent="Wren/Receiver/Muzzle" instance=ExtResource("flash")]
 
 [node name="Hands" parent="." instance=ExtResource("hands")]
+
+[editable path="Wren"]

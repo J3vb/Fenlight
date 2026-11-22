@@ -390,9 +390,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 52, 1, 30.5)
 serum = ExtResource("serum_second_wind")
 max_sales = 3
 
-[node name="Body" parent="NavigationRegion3D/Machines/MedDispenserSecondWind" index="1"]
-baked = false
-
 [node name="MedDispenserIronhide" parent="NavigationRegion3D/Machines" instance=ExtResource("meddisp")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 34, 1, 26.5)
 serum = ExtResource("serum_ironhide")
