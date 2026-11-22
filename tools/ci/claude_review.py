@@ -23,13 +23,14 @@ from pathlib import Path
 
 LABEL = "claude-review"
 SEVERITIES = ("critical", "high", "medium", "low")
-CODE_SUFFIXES = (".gd", ".py", ".gdshader", ".sh")
+CODE_SUFFIXES = (".gd", ".py", ".gdshader", ".sh", ".rs", ".js")
 EXCLUDED_PREFIXES = ("addons/", ".agents/", ".claude/", ".godot/")
 # Lower number = reviewed first, so the budget goes to game code before tests and tools.
 AREA_PRIORITY = (
     ("core/", 0),
     ("systems/net/", 1),
     ("systems/", 2),
+    ("launcher/", 2),
     ("levels/", 3),
     ("deploy/", 4),
     (".github/", 4),

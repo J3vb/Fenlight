@@ -1,9 +1,10 @@
 """Quality gate for pull requests. Run from the repo root:
 
-    python tools/ci/check_pr.py <base-ref> [--no-tests-label]
+    python tools/ci/check_pr.py <base-ref> [--no-tests-label] [--pr-body-file <path>]
 
 Checks all tracked GDScript and Python outside vendored third-party folders. Only the tests-required
-rule uses the files the PR changed.
+rule and the review-recorded rule use the files the PR changed. The review rule runs only when CI passes the
+body of a ready (non-draft) PR.
 """
 
 import re
@@ -19,6 +20,10 @@ LOGIC_DIRS = ("core/", "systems/")
 VENDORED = ("addons/", ".agents/skills/", ".agents/plugins/", ".claude/skills/")
 FUNC_RE = re.compile(r"^(\s*)(static\s+)?func\s+(\w+)")
 COMPLEXITY_RE = re.compile(r"^\s*F\s+(\d+):\d+\s+(\S+)\s+-\s+[A-F]\s+\((\d+)\)\s*$")
+# Files that need no independent review: prose, binary assets and launcher news data.
+REVIEW_EXEMPT_DIRS = ("docs/", "assets/", "launcher/news/")
+REVIEW_LINE_RE = re.compile(r"^Review:[ \t]*(\S.*)$", re.MULTILINE)
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
 
 def changed_files(base: str) -> list[str]:
@@ -144,11 +149,38 @@ def tests_required(files: list[str], skip_tests_rule: bool) -> bool:
     return False
 
 
+def needs_review(files: list[str]) -> list[str]:
+    return [f for f in files if not (f.endswith(".md") or f.startswith(REVIEW_EXEMPT_DIRS))]
+
+
+def review_recorded(files: list[str], body: str | None) -> bool:
+    """A ready PR that changes code must say how it was reviewed (pre-merge-review skill)."""
+    code = needs_review(files)
+    if body is None or not code:
+        return True
+    match = REVIEW_LINE_RE.search(HTML_COMMENT_RE.sub("", body))
+    if match and not match.group(1).strip().lower().startswith("skipped"):
+        return True
+    print("This PR changes code but its body has no filled 'Review:' line (or says skipped):")
+    for path in code[:10]:
+        print("  " + path)
+    print("Run the pre-merge-review skill, fill the Review section of the PR, then re-run this job.")
+    return False
+
+
+def pr_body() -> str | None:
+    flag = "--pr-body-file"
+    if flag not in sys.argv:
+        return None
+    return Path(sys.argv[sys.argv.index(flag) + 1]).read_text(encoding="utf-8")
+
+
 def main() -> int:
     files = changed_files(sys.argv[1])
     ok = check_gdscript(tracked_files(".gd"))
     ok &= check_python(tracked_files(".py"))
     ok &= tests_required(files, "--no-tests-label" in sys.argv)
+    ok &= review_recorded(files, pr_body())
     ok &= run([sys.executable, str(Path(__file__).with_name("check_rules.py"))])
     ok &= run([sys.executable, str(Path(__file__).with_name("check_plans.py"))])
     ok &= run([sys.executable, str(Path(__file__).with_name("check_saved_ids.py")), sys.argv[1]])

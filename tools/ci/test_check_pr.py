@@ -93,6 +93,36 @@ class TestsRequiredTests(unittest.TestCase):
         self.assertTrue(check_pr.tests_required(["addons/example.gd", "tools/screenshot.gd", "core/data.tres"], False))
 
 
+class ReviewRecordedTests(unittest.TestCase):
+    TEMPLATE = (
+        "### Review\n<!-- Run the pre-merge-review skill. -->\n"
+        "Review: <!-- fresh subagent at <sha>; checklists: game   OR   skipped, docs only -->\n"
+    )
+
+    def check(self, files: list[str], body: str | None) -> bool:
+        with contextlib.redirect_stdout(io.StringIO()):
+            return check_pr.review_recorded(files, body)
+
+    def test_no_body_passes_for_drafts_and_local_runs(self):
+        self.assertTrue(self.check(["systems/x/y.gd"], None))
+
+    def test_docs_and_assets_only_need_no_review_line(self):
+        self.assertTrue(self.check(["docs/plans/x.md", "assets/a.glb", "launcher/news/n.json", "README.md"], ""))
+
+    def test_untouched_template_fails_for_code(self):
+        self.assertFalse(self.check(["launcher/core/src/install.rs"], self.TEMPLATE))
+
+    def test_skipped_fails_for_code(self):
+        self.assertFalse(self.check(["tools/ci/check_pr.py"], "Review: skipped, docs only\n"))
+
+    def test_filled_review_line_passes(self):
+        body = self.TEMPLATE.replace("Review: <!--", "Review: fresh subagent at abc123; checklists: game <!--")
+        self.assertTrue(self.check(["systems/x/y.gd", "docs/a.md"], body))
+
+    def test_heading_alone_does_not_count(self):
+        self.assertFalse(self.check(["core/net.gd"], "### Review\nLooks fine.\n"))
+
+
 class RepositoryScopeTests(unittest.TestCase):
     @patch("tools.ci.check_pr.subprocess.run")
     def test_tracked_files_exclude_addons_and_other_extensions(self, run):
