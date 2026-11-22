@@ -48,3 +48,5 @@ transform = Transform3D(1, 0, 0, 0, 0.9063, 0.4226, 0, -0.4226, 0.9063, -0.12, -
 
 [node name="CharmMount" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.041, 0.003, -0.294)
+
+[editable path="Rampart"]

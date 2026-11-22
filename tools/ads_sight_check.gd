@@ -14,7 +14,9 @@ func _ready() -> void:
 
 func _run() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT))
-	var session: GameSession = (load("res://systems/game/game_session.tscn") as PackedScene).instantiate() as GameSession
+	var session: GameSession = (
+		(load("res://systems/game/game_session.tscn") as PackedScene).instantiate() as GameSession
+	)
 	session.rng_seed = 7
 	add_child(session)
 	await _seconds(8.0)

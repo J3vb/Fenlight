@@ -35,3 +35,5 @@ mesh = ExtResource("flash_quad")
 
 [node name="CharmMount" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.058, 0.025, -0.289)
+
+[editable path="CryoLance"]

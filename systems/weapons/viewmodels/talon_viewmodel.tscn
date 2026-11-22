@@ -65,3 +65,5 @@ zoom = 3.0
 
 [node name="CharmMount" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.049, 0.010, -0.303)
+
+[editable path="Talon"]

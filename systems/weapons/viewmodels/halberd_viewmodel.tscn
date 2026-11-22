@@ -44,3 +44,5 @@ mesh = ExtResource("flash_quad")
 
 [node name="CharmMount" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.040, 0.061, -0.344)
+
+[editable path="Halberd"]

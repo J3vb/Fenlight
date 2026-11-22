@@ -427,6 +427,28 @@ class CheckRulesTests(unittest.TestCase):
         self.check("decisions-short", {name: "- **A:** item\n  - nested item\n"}, 1)
         self.check("decisions-short", {})
 
+    def test_model_children_editable(self):
+        rule = "model-children-editable"
+        name = "systems/weapons/viewmodels/rifle_viewmodel.tscn"
+        head = (
+            '[gd_scene format=3]\n\n[ext_resource type="PackedScene" path="res://assets/rifle.glb" id="1"]\n'
+            '[ext_resource type="PackedScene" path="res://hand.tscn" id="2"]\n\n'
+            '[node name="Viewmodel" type="Node3D"]\n'
+        )
+        model = '[node name="Rifle" parent="." instance=ExtResource("1")]\n'
+        inside = '[node name="Flash" type="Node3D" parent="Rifle/Receiver/Muzzle"]\n'
+        problems = self.check(rule, {name: head + model + inside}, 1)
+        self.assertIn(":8:", problems[0])
+        self.assertIn('[editable path="Rifle"]', problems[0])
+        self.check(rule, {name: head + model + inside + '\n[editable path="Rifle"]\n'})
+        self.check(rule, {name: head + model + '[node name="A" type="Node3D" parent="Rifle"]\n'})
+        hand = '[node name="Hand" parent="." instance=ExtResource("2")]\n'
+        self.check(rule, {name: head + hand + '[node name="A" type="Node3D" parent="Hand/Bone"]\n'})
+        nested = '[node name="Gun" type="Node3D" parent="."]\n'
+        nested += '[node name="Rifle" parent="Gun" instance=ExtResource("1")]\n'
+        self.check(rule, {name: head + nested + inside.replace('"Rifle/', '"Gun/Rifle/')}, 1)
+        self.check(rule, {name: head + model + inside + inside.replace("Flash", "Light")}, 1)
+
     def test_scope_uses_tracked_files_and_excludes_vendor_and_cache(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
