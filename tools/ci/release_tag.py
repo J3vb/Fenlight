@@ -3,6 +3,7 @@
 pick --channel stable|test [--version X.Y.Z[-test.N]]: reads existing tags on stdin, prints the new
 tag. With no version it takes the next patch after the newest stable tag (test: its next test number).
 checks: reads a commit's check runs (one JSON object per line) on stdin, fails unless CI passed.
+Only the newest run of each check counts, so a run cancelled by a later one is ignored.
 """
 
 import argparse
@@ -49,6 +50,10 @@ def pick_tag(channel: str, version: str, tags: list[str]) -> str:
 
 
 def ci_problem(runs: list[dict]) -> str:
+    latest: dict[str, dict] = {}
+    for run in sorted(runs, key=lambda r: r.get("id", 0)):
+        latest[run["name"]] = run
+    runs = list(latest.values())
     failed = sorted({r["name"] for r in runs if r.get("conclusion") in FAILED})
     if failed:
         return "CI failed on this commit: " + ", ".join(failed)

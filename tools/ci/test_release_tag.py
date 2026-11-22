@@ -58,6 +58,15 @@ class CiProblemTests(unittest.TestCase):
         runs = [{"name": "test", "conclusion": "success"}, {"name": "export / export", "conclusion": "failure"}]
         self.assertIn("export / export", release_tag.ci_problem(runs))
 
+    def test_only_the_newest_run_of_a_check_counts(self):
+        runs = [
+            {"id": 2, "name": "test", "conclusion": "success"},
+            {"id": 1, "name": "test", "conclusion": "cancelled"},
+        ]
+        self.assertEqual(release_tag.ci_problem(runs), "")
+        runs[0]["conclusion"] = "failure"
+        self.assertIn("test", release_tag.ci_problem(runs))
+
     def test_needs_a_passed_test_check(self):
         self.assertIn("has not passed", release_tag.ci_problem([{"name": "test", "conclusion": None}]))
         self.assertIn("has not passed", release_tag.ci_problem([]))
