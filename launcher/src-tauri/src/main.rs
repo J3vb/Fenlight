@@ -167,11 +167,14 @@ fn repair(app: AppHandle, launcher: State<'_, Launcher>) -> Result<(), String> {
         .ok_or("The game is not installed.")?;
     let release = {
         let releases = launcher.releases.lock().map_err(|error| error.to_string())?;
-        releases
+        let list = releases
             .as_deref()
-            .and_then(|list| feed::find(list, &version, feed::platform_suffix()))
+            .ok_or("Connect to the internet to repair the game.")?;
+        feed::find(list, &version, feed::platform_suffix())
     }
-    .ok_or("Connect to the internet to repair the game.")?;
+    .ok_or(format!(
+        "v{version} can no longer be downloaded, so it cannot be repaired."
+    ))?;
     start_download(app, &launcher, release, true)
 }
 
@@ -309,6 +312,20 @@ fn play(app: AppHandle, launcher: State<'_, Launcher>) -> Result<(), String> {
     Ok(())
 }
 
+/// The window has one fixed size; on a smaller screen (or high display scaling) it shrinks
+/// once to fit, so Play is never under the taskbar.
+fn fit_to_screen(window: &tauri::WebviewWindow) {
+    let (Ok(Some(monitor)), Ok(size)) = (window.current_monitor(), window.outer_size()) else {
+        return;
+    };
+    let area = monitor.work_area().size;
+    if size.width > area.width || size.height > area.height {
+        let fitted = tauri::PhysicalSize::new(size.width.min(area.width), size.height.min(area.height));
+        let _ = window.set_size(fitted);
+        let _ = window.center();
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     tauri::Builder::default()
@@ -326,6 +343,9 @@ fn main() {
                 busy: AtomicBool::new(false),
                 host: Mutex::new(Host::new(data_dir.join("server"))),
             });
+            if let Some(window) = app.get_webview_window("main") {
+                fit_to_screen(&window);
+            }
             let handle = app.handle().clone();
             std::thread::spawn(move || host::watch(handle));
             Ok(())

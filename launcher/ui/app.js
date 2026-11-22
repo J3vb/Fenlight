@@ -77,8 +77,10 @@ async function startInstall(newest) {
   progressBar.value = 0;
   try {
     await invoke("install");
+    return true;
   } catch (problem) {
     showStatus(String(problem), "error");
+    return false;
   }
 }
 
@@ -98,7 +100,8 @@ async function show() {
   if (state.auto_update && action !== "retry") {
     playText.textContent = "Update";
     playButton.disabled = true;
-    await startInstall(newest);
+    // A refused start (another download running) shows Retry instead of a stuck button.
+    if (!(await startInstall(newest))) await show();
     return;
   }
   if (action === "retry") {
@@ -133,7 +136,7 @@ async function refresh() {
 listen("progress", (event) => {
   const { done, total } = event.payload;
   progressBar.value = total > 0 ? Math.floor((done * 100) / total) : 0;
-  playText.textContent = `Installing ${progressBar.value}%`;
+  playText.textContent = progressBar.value >= 100 ? "Checking" : `Installing ${progressBar.value}%`;
 });
 
 listen("finished", (event) => {

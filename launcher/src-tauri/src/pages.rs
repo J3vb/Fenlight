@@ -79,25 +79,27 @@ pub fn install_place(launcher: State<'_, Launcher>) -> InstallPlace {
 pub async fn browse_install(app: AppHandle) -> Result<InstallPlace, String> {
     let start = {
         let launcher = app.state::<Launcher>();
-        if !launcher.installer().installed().is_empty() || launcher.busy.load(Ordering::Relaxed) {
-            return Err("Uninstall the game first to install it somewhere else.".into());
-        }
+        can_move(&launcher)?;
         launcher.game_dir()
     };
     let start = start.ancestors().find(|dir| dir.is_dir()).map(Path::to_path_buf);
     let picker = app.clone();
     let picked = tauri::async_runtime::spawn_blocking(move || {
-        let dialog = picker.dialog().file().set_title("Install Fenlight in");
-        match start {
-            Some(dir) => dialog.set_directory(dir),
-            None => dialog,
+        let mut dialog = picker.dialog().file().set_title("Install Fenlight in");
+        if let Some(window) = picker.get_webview_window("main") {
+            dialog = dialog.set_parent(&window);
         }
-        .blocking_pick_folder()
+        if let Some(dir) = start {
+            dialog = dialog.set_directory(dir);
+        }
+        dialog.blocking_pick_folder()
     })
     .await
     .map_err(|error| error.to_string())?;
     let launcher = app.state::<Launcher>();
     if let Some(picked) = picked {
+        // Checked again: an install may have started while the picker was open.
+        can_move(&launcher)?;
         let picked = picked.into_path().map_err(|error| error.to_string())?;
         let mut saved = launcher.settings.lock().map_err(|error| error.to_string())?;
         saved.install_dir = Some(settings::install_folder(&picked));
@@ -110,6 +112,13 @@ pub async fn browse_install(app: AppHandle) -> Result<InstallPlace, String> {
         );
     }
     Ok(install_place(launcher))
+}
+
+fn can_move(launcher: &Launcher) -> Result<(), String> {
+    if !launcher.installer().installed().is_empty() || launcher.busy.load(Ordering::Relaxed) {
+        return Err("Uninstall the game first to install it somewhere else.".into());
+    }
+    Ok(())
 }
 
 #[tauri::command]
