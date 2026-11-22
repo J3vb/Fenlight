@@ -47,7 +47,7 @@
   "mainBinaryName": "Fenlight-Launcher",
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZFRTk5ODJDRDAxNjQzNUUKUldSZVF4YlFMSmpwL3R3dHdXQ3AvWE5tYkhjTmVZOTM5ZTA2bXRHUy9nNnB2d3I1UFpwNno2Q3MK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDU4QjdDN0U4RjgyRkFFQjkKUldTNXJpLzQ2TWUzV0VyYkRlU2VzUERxbktueXRDZHlkUFA4cnFKeWRuSEZJUkNwbGMrRFNONUoK",
       "endpoints": [],
       "windows": {
         "installMode": "passive"
