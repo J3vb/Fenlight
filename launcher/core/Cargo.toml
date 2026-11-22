@@ -13,3 +13,6 @@ sha2 = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 fs4 = "1"
 crc32fast = "1"
+
+[target."cfg(windows)".dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading"] }

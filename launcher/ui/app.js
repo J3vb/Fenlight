@@ -18,6 +18,9 @@ const diskFree = document.getElementById("disk-free");
 let online = true;
 // An update installs on its own once per version and run; after a failure Play turns into Retry.
 let tried = "";
+// True while the launcher checks for its own update: Play works, but a game update waits so
+// a launcher restart does not cut it off.
+let checkingLauncher = false;
 // What the big button does: "play", "install" (opens the Install dialog) or "retry".
 let action = "play";
 
@@ -97,6 +100,7 @@ async function show() {
   playButton.disabled = state.busy || (!installed && !state.update_ready);
   playText.textContent = state.busy ? "Installing" : { play: "Play", install: "Install", retry: "Retry" }[action];
   if (state.busy) return;
+  if (checkingLauncher) return;
   if (state.auto_update && action !== "retry") {
     playText.textContent = "Update";
     playButton.disabled = true;
@@ -123,15 +127,23 @@ async function refresh() {
     online = false;
   }
   if (online) {
+    checkingLauncher = true;
+    await show();
     showStatus("Checking for a launcher update…");
     try {
       await invoke("self_update");
     } catch (problem) {
       // A failed launcher update keeps this launcher; the game still installs and plays.
     }
+    checkingLauncher = false;
   }
   await show();
 }
+
+// Started a second time (the game's "Restart to update"): look for updates again.
+listen("started_again", () => {
+  if (!checkingLauncher) refresh();
+});
 
 listen("progress", (event) => {
   const { done, total } = event.payload;

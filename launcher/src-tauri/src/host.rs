@@ -179,6 +179,7 @@ mod tests {
             releases: Mutex::new(None),
             cancel: Arc::new(AtomicBool::new(false)),
             busy: AtomicBool::new(false),
+            game: Mutex::new(None),
             host: Mutex::new(Host::new(data_dir.join("server"))),
             data_dir,
         }

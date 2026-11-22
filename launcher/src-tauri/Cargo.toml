@@ -16,6 +16,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-updater = "2"
 tauri-plugin-dialog = "2"
 url = "2"
+tauri-plugin-single-instance = "2"
 
 [features]
 default = ["custom-protocol"]

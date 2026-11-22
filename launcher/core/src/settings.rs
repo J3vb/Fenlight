@@ -2,6 +2,7 @@
 
 use crate::feed::{Channel, API_URL};
 use crate::host;
+use crate::log;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
@@ -34,12 +35,15 @@ impl Default for Settings {
 }
 
 impl Settings {
-    /// Saved settings, or the defaults when the file is missing or broken.
+    /// Saved settings, or the defaults when the file is missing or broken (logged).
     pub fn load(data_dir: &Path) -> Self {
-        std::fs::read_to_string(data_dir.join(SETTINGS_FILE))
-            .ok()
-            .and_then(|text| serde_json::from_str(&text).ok())
-            .unwrap_or_default()
+        let Ok(text) = std::fs::read_to_string(data_dir.join(SETTINGS_FILE)) else {
+            return Self::default();
+        };
+        serde_json::from_str(&text).unwrap_or_else(|error| {
+            log::write(data_dir, "warn", "settings_reset", &error.to_string());
+            Self::default()
+        })
     }
 
     /// The game folder: the picked one, else `<data folder>/game` (where installs from before
@@ -51,7 +55,10 @@ impl Settings {
     pub fn save(&self, data_dir: &Path) -> Result<(), String> {
         std::fs::create_dir_all(data_dir).map_err(|error| error.to_string())?;
         let text = serde_json::to_string_pretty(self).map_err(|error| error.to_string())?;
-        std::fs::write(data_dir.join(SETTINGS_FILE), text).map_err(|error| error.to_string())
+        // Written next to the file, then swapped in: a crash mid-save keeps the old settings.
+        let temp = data_dir.join(format!("{SETTINGS_FILE}.tmp"));
+        std::fs::write(&temp, text).map_err(|error| error.to_string())?;
+        std::fs::rename(&temp, data_dir.join(SETTINGS_FILE)).map_err(|error| error.to_string())
     }
 }
 
@@ -62,7 +69,8 @@ pub fn arg_value(args: &[String], name: &str) -> Option<String> {
         .find_map(|arg| arg.strip_prefix(&prefix).map(str::to_string))
 }
 
-/// The launcher's data folder: `--game-dir=` (tests), else `<local app data>/Experiment Undead`.
+/// The launcher's data folder: `--game-dir=` (tests), else `Experiment Undead` inside the
+/// launcher's local app data folder (`%LOCALAPPDATA%\com.experimentundead.launcher`).
 /// The folder keeps the game's old name so installs from before the rename to Fenlight carry over.
 pub fn data_dir(args: &[String], local_data: PathBuf) -> PathBuf {
     arg_value(args, "game-dir")

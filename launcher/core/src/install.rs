@@ -13,6 +13,9 @@ use std::time::Duration;
 
 /// Version folders kept after an install.
 pub const KEEP: usize = 2;
+/// A download that receives nothing for this long fails, so Cancel never waits on a dead line.
+pub const STALL_TIMEOUT: Duration = Duration::from_secs(30);
+const DOWNLOADS: &str = ".downloads";
 const CHUNK: usize = 64 * 1024;
 
 /// The game exe inside each version folder.
@@ -35,6 +38,8 @@ pub struct Installer {
     pub versions_dir: PathBuf,
     /// Versions that are running (a hosted server) and must not be pruned.
     pub in_use: Vec<String>,
+    /// How long a download may receive nothing before it fails (`STALL_TIMEOUT`).
+    pub stall_timeout: Duration,
 }
 
 impl Installer {
@@ -42,6 +47,21 @@ impl Installer {
         Self {
             versions_dir,
             in_use: Vec::new(),
+            stall_timeout: STALL_TIMEOUT,
+        }
+    }
+
+    /// Deletes what an install cut short by closing the launcher left: the `.downloads`
+    /// folder and `<version>.tmp` folders. Only one launcher runs, so none is in progress.
+    pub fn clean_leftovers(&self) {
+        let _ = fs::remove_dir_all(self.versions_dir.join(DOWNLOADS));
+        let Ok(entries) = fs::read_dir(&self.versions_dir) else {
+            return;
+        };
+        for entry in entries.filter_map(Result::ok) {
+            if entry.file_name().to_string_lossy().ends_with(".tmp") && entry.path().is_dir() {
+                let _ = fs::remove_dir_all(entry.path());
+            }
         }
     }
 
@@ -126,10 +146,15 @@ impl Installer {
         progress: &mut dyn FnMut(u64, u64),
         then: impl FnOnce(&Path) -> Result<T, String>,
     ) -> Result<T, String> {
-        let downloads = self.versions_dir.join(".downloads");
+        let downloads = self.versions_dir.join(DOWNLOADS);
         fs::create_dir_all(&downloads).map_err(|_| self.write_problem())?;
         let zip_path = downloads.join(format!("{}.zip", release.version));
-        let result = download(&release.url, release.size, &zip_path, cancel, progress).and_then(|_| then(&zip_path));
+        let source = Source {
+            url: &release.url,
+            size: release.size,
+            stall_timeout: self.stall_timeout,
+        };
+        let result = download(&source, &zip_path, cancel, progress).and_then(|_| then(&zip_path));
         let _ = fs::remove_file(&zip_path);
         let _ = fs::remove_dir(&downloads);
         result
@@ -143,18 +168,24 @@ impl Installer {
         let _ = fs::remove_dir_all(&temp_dir);
         if unzip(zip_path, &temp_dir).is_err() {
             let _ = fs::remove_dir_all(&temp_dir);
-            return Err(self.write_problem());
+            return Err(format!(
+                "Could not unpack the game into {}. Check that the drive has free space.",
+                self.versions_dir.display()
+            ));
         }
         let _ = fs::remove_dir_all(&final_dir);
-        if fs::rename(&temp_dir, &final_dir).is_err() {
+        if !rename_with_retries(&temp_dir, &final_dir) {
             let _ = fs::remove_dir_all(&temp_dir);
-            return Err(format!("Could not finish installing {version}."));
+            return Err(format!("Could not finish installing {version}. Try again."));
         }
-        self.prune(&self.in_use);
+        let mut keep = self.in_use.clone();
+        keep.push(version.to_string());
+        self.prune(&keep);
         Ok(final_dir)
     }
 
-    /// Deletes all but the `KEEP` newest version folders. Folders named in `in_use`, or that
+    /// Deletes all but the `KEEP` newest version folders (an install keeps the version it just
+    /// installed too, even an older stable build next to newer test builds). Folders named in `in_use`, or that
     /// cannot be deleted yet (a running game), stay and are tried again next time.
     pub fn prune(&self, in_use: &[String]) {
         for name in self.installed().iter().skip(KEEP) {
@@ -201,6 +232,20 @@ impl Installer {
             self.versions_dir.display()
         )
     }
+}
+
+/// Windows virus scanners briefly lock a folder that was just unpacked, so a failed rename is
+/// tried a few more times before the install gives up.
+fn rename_with_retries(from: &Path, to: &Path) -> bool {
+    for attempt in 0..5 {
+        if fs::rename(from, to).is_ok() {
+            return true;
+        }
+        if attempt < 4 {
+            std::thread::sleep(Duration::from_millis(500));
+        }
+    }
+    false
 }
 
 fn check_digest(zip_path: &Path, digest: &str) -> Result<(), String> {
@@ -266,26 +311,40 @@ pub fn sha256_file(path: &Path) -> io::Result<String> {
     Ok(hasher.finalize().iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
-fn download(
-    url: &str,
+/// Where a download comes from and how long it may stall.
+struct Source<'a> {
+    url: &'a str,
     size: u64,
+    stall_timeout: Duration,
+}
+
+fn download(
+    source: &Source,
     target: &Path,
     cancel: &AtomicBool,
     progress: &mut dyn FnMut(u64, u64),
 ) -> Result<(), String> {
     let failed = || "The download failed. Check your connection and try again.".to_string();
+    let not_saved = || {
+        let folder = target.parent().unwrap_or(target);
+        format!(
+            "Could not save the download in {}. Check that the drive has free space.",
+            folder.display()
+        )
+    };
+    // The blocking client applies this timeout to each read, not to the whole download.
     let client = reqwest::blocking::Client::builder()
         .user_agent(USER_AGENT)
         .connect_timeout(Duration::from_secs(10))
-        .timeout(None)
+        .timeout(source.stall_timeout)
         .build()
         .map_err(|_| failed())?;
-    let mut response = client.get(url).send().map_err(|_| failed())?;
+    let mut response = client.get(source.url).send().map_err(|_| failed())?;
     if !response.status().is_success() {
         return Err(failed());
     }
-    let total = response.content_length().unwrap_or(size);
-    let mut file = File::create(target).map_err(|_| failed())?;
+    let total = response.content_length().unwrap_or(source.size);
+    let mut file = File::create(target).map_err(|_| not_saved())?;
     let mut buffer = vec![0u8; CHUNK];
     let mut done: u64 = 0;
     loop {
@@ -296,7 +355,7 @@ fn download(
         if read == 0 {
             break;
         }
-        file.write_all(&buffer[..read]).map_err(|_| failed())?;
+        file.write_all(&buffer[..read]).map_err(|_| not_saved())?;
         done += read as u64;
         progress(done, total);
     }

@@ -13,6 +13,7 @@ use launcher_core::log;
 use launcher_core::settings::{self, Settings};
 use serde::Serialize;
 use std::path::PathBuf;
+use std::process::Child;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Emitter, Manager, State, WindowEvent};
@@ -26,6 +27,8 @@ struct Launcher {
     cancel: Arc<AtomicBool>,
     busy: AtomicBool,
     host: Mutex<Host>,
+    /// The game started by Play, so a second click does not start it twice.
+    game: Mutex<Option<Child>>,
 }
 
 impl Launcher {
@@ -42,6 +45,28 @@ impl Launcher {
     fn game_dir(&self) -> PathBuf {
         let saved = self.settings.lock().map(|saved| saved.clone()).unwrap_or_default();
         saved.game_dir(&self.data_dir)
+    }
+
+    /// Installed versions the player's channel plays, newest first: Stable never runs a test
+    /// build left over from the Test channel.
+    fn installed(&self) -> Vec<String> {
+        let channel = self
+            .settings
+            .lock()
+            .map(|saved| saved.channel)
+            .unwrap_or(Channel::Stable);
+        feed::installed_on(&self.installer().installed(), channel)
+    }
+
+    fn game_running(&self) -> bool {
+        let Ok(mut game) = self.game.lock() else {
+            return false;
+        };
+        let running = game.as_mut().is_some_and(|child| matches!(child.try_wait(), Ok(None)));
+        if !running {
+            *game = None;
+        }
+        running
     }
 
     fn hosting(&self) -> Option<String> {
@@ -88,7 +113,7 @@ struct Finished {
 
 #[tauri::command]
 fn status(launcher: State<'_, Launcher>) -> Status {
-    let installed = launcher.installer().installed();
+    let installed = launcher.installed();
     let newest = launcher.newest();
     let update_ready = newest
         .as_ref()
@@ -159,8 +184,10 @@ fn repair(app: AppHandle, launcher: State<'_, Launcher>) -> Result<(), String> {
     if launcher.hosting().is_some() {
         return Err("Stop your server first.".into());
     }
+    if launcher.game_running() {
+        return Err("Close the game first.".into());
+    }
     let version = launcher
-        .installer()
         .installed()
         .into_iter()
         .next()
@@ -287,20 +314,25 @@ async fn check_and_install(app: &AppHandle, manifest: &str) -> Result<bool, Stri
 /// it hosts no server.
 #[tauri::command]
 fn play(app: AppHandle, launcher: State<'_, Launcher>) -> Result<(), String> {
-    let installer = launcher.installer();
-    let version = installer
+    if launcher.game_running() {
+        return Err("The game is already running.".into());
+    }
+    let version = launcher
         .installed()
         .into_iter()
         .next()
         .ok_or("The game is not installed yet.")?;
-    let exe = installer.exe_path(&version);
+    let exe = launcher.installer().exe_path(&version);
     let me = std::env::current_exe().map_err(|error| error.to_string())?;
-    std::process::Command::new(&exe)
+    let child = std::process::Command::new(&exe)
         .current_dir(exe.parent().unwrap_or(&launcher.data_dir))
         .arg("--from-launcher")
         .arg(format!("--launcher-exe={}", me.display()))
         .spawn()
         .map_err(|error| format!("Could not start the game: {error}"))?;
+    if let Ok(mut game) = launcher.game.lock() {
+        *game = Some(child);
+    }
     let close = launcher
         .settings
         .lock()
@@ -329,6 +361,17 @@ fn fit_to_screen(window: &tauri::WebviewWindow) {
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     tauri::Builder::default()
+        // Must be the first plugin. A second start (the game's "Restart to update", or a
+        // double click) shows this window and checks for updates instead of running a second
+        // launcher that would not know about the hosted server or a running install.
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+            let _ = app.emit("started_again", ());
+        }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
@@ -342,7 +385,9 @@ fn main() {
                 cancel: Arc::new(AtomicBool::new(false)),
                 busy: AtomicBool::new(false),
                 host: Mutex::new(Host::new(data_dir.join("server"))),
+                game: Mutex::new(None),
             });
+            app.state::<Launcher>().installer().clean_leftovers();
             if let Some(window) = app.get_webview_window("main") {
                 fit_to_screen(&window);
             }

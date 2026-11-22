@@ -67,13 +67,20 @@ pub fn platform_suffix() -> &'static str {
 }
 
 /// Downloads the releases list. Errors are plain text for the status line and the log.
+/// GitHub sends 30 releases unless asked for more; 100 is its most per page and keeps the
+/// newest stable release in the list even after many test builds.
 pub fn fetch(api_url: &str) -> Result<Vec<Value>, String> {
     let client = reqwest::blocking::Client::builder()
         .user_agent(USER_AGENT)
-        .timeout(Duration::from_secs(8))
+        .connect_timeout(Duration::from_secs(8))
+        .timeout(Duration::from_secs(20))
         .build()
         .map_err(|error| error.to_string())?;
-    let response = client.get(api_url).send().map_err(|error| error.to_string())?;
+    let response = client
+        .get(api_url)
+        .query(&[("per_page", "100")])
+        .send()
+        .map_err(|error| error.to_string())?;
     if !response.status().is_success() {
         return Err(format!("GitHub answered {}", response.status()));
     }
@@ -95,6 +102,16 @@ pub fn find(releases: &[Value], version: &str, suffix: &str) -> Option<Release> 
         .iter()
         .filter_map(|entry| installable(entry, Channel::Test, suffix))
         .find(|release| release.version == version)
+}
+
+/// The installed versions a channel plays: stable plays only stable builds, so switching from
+/// Test back to Stable does not keep running a test build (or its test saves).
+pub fn installed_on(installed: &[String], channel: Channel) -> Vec<String> {
+    installed
+        .iter()
+        .filter(|version| channel == Channel::Test || !version.contains('-'))
+        .cloned()
+        .collect()
 }
 
 /// True when version is newer than every installed one.

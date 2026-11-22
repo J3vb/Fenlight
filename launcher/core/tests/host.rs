@@ -171,3 +171,25 @@ fn checking_running_keeps_the_exit_code() {
     }
     assert_eq!(host.poll(), Some(3), "the status poll did not swallow the update exit");
 }
+
+#[test]
+fn dropping_the_host_ends_its_server() {
+    let dir = common::temp_dir("host-drop");
+    let mut host = Host::new(dir.join("server"));
+    host.start(&fake_server(), "0.1.1", 7790, 4).expect("started");
+    let alive = host.stop_file().with_extension("alive");
+    let start = Instant::now();
+    while !alive.exists() && start.elapsed() < Duration::from_secs(5) {
+        std::thread::sleep(Duration::from_millis(20));
+    }
+    assert!(alive.exists(), "the fake server writes its heartbeat");
+    drop(host);
+    std::thread::sleep(Duration::from_millis(200));
+    let before = std::fs::read_to_string(&alive).unwrap_or_default();
+    std::thread::sleep(Duration::from_millis(300));
+    assert_eq!(
+        std::fs::read_to_string(&alive).unwrap_or_default(),
+        before,
+        "the server kept running after its launcher went away"
+    );
+}
