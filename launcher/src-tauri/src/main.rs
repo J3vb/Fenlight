@@ -264,10 +264,11 @@ fn cancel(launcher: State<'_, Launcher>) {
 
 /// Updates the launcher itself when the newest release on the channel has a newer one: the
 /// signed setup exe installs quietly and the launcher restarts. Ok(false) means up to date,
-/// or a hosted server is running (a restart would leave it without its launcher).
+/// a hosted server is running (a restart would leave it without its launcher), or a game
+/// download is running (a restart would cut it off; the next start updates the launcher).
 #[tauri::command]
 async fn self_update(app: AppHandle, launcher: State<'_, Launcher>) -> Result<bool, String> {
-    if launcher.hosting().is_some() {
+    if launcher.hosting().is_some() || launcher.busy.load(Ordering::Relaxed) {
         return Ok(false);
     }
     let url = {
@@ -387,7 +388,8 @@ fn main() {
                 host: Mutex::new(Host::new(data_dir.join("server"))),
                 game: Mutex::new(None),
             });
-            app.state::<Launcher>().installer().clean_leftovers();
+            let installer = app.state::<Launcher>().installer();
+            std::thread::spawn(move || installer.clean_leftovers());
             if let Some(window) = app.get_webview_window("main") {
                 fit_to_screen(&window);
             }

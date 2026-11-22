@@ -120,6 +120,7 @@ async function show() {
 }
 
 async function refresh() {
+  checkingLauncher = true;
   try {
     await invoke("refresh");
     online = true;
@@ -127,7 +128,6 @@ async function refresh() {
     online = false;
   }
   if (online) {
-    checkingLauncher = true;
     await show();
     showStatus("Checking for a launcher update…");
     try {
@@ -135,8 +135,8 @@ async function refresh() {
     } catch (problem) {
       // A failed launcher update keeps this launcher; the game still installs and plays.
     }
-    checkingLauncher = false;
   }
+  checkingLauncher = false;
   await show();
 }
 

@@ -208,8 +208,9 @@ impl Host {
     }
 }
 
-/// A launcher that closes without `quit` (crash, Task Manager, an update restart) must not
-/// leave a hidden server holding the port.
+/// Ends the server when the `Host` is dropped. The launcher's managed state is not dropped on
+/// exit, so in the app the Windows job object below is what ends a server whose launcher
+/// crashed, was killed or restarted for an update.
 impl Drop for Host {
     fn drop(&mut self) {
         if let Some(child) = self.child.as_mut() {
