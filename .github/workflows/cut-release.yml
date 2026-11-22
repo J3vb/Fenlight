@@ -56,7 +56,7 @@ jobs:
           REF: ${{ inputs.ref }}
         run: |
           sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/$REF" --jq .sha)"
-          gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs" --paginate --jq '.check_runs[]' \
+          gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs" --paginate --jq '.check_runs[] | tojson' \
             | python3 tools/ci/release_tag.py checks
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
