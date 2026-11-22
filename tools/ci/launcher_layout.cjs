@@ -122,6 +122,8 @@ async function main() {
     const page = await browser.newPage({ viewport, deviceScaleFactor: scale });
     await page.addInitScript(stub);
     await page.goto(PAGE);
+    // Segoe UI is not on Linux. DejaVu Sans is wider, so a layout that fits with it fits on Windows.
+    await page.addStyleTag({ content: 'body, button, select { font-family: "DejaVu Sans", sans-serif; }' });
     for (const [stateName, state] of Object.entries(STATES)) {
       await page.evaluate(setState, state);
       const problems = await page.evaluate(findProblems);

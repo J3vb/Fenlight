@@ -318,9 +318,9 @@ time { color: var(--muted); font-size: 12px; }
   background: linear-gradient(180deg, var(--green), var(--green-deep));
   box-shadow: 0 0 24px rgba(141, 255, 58, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   color: #071006;
-  font-size: 38px;
+  font-size: 34px;
   font-weight: 800;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 
@@ -455,14 +455,14 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--green); }
   #page-play { grid-template-columns: 1fr 340px; }
   #latest li { grid-template-columns: 104px 1fr; }
   .hero h2 { font-size: 36px; }
-  #play { width: 270px; font-size: 32px; }
+  #play { width: 270px; font-size: 30px; }
 }
 
 /* 125% to 150% display scaling shrinks the window to about 1100 to 1300 wide. */
 @media (max-width: 1300px) {
   .bar { gap: 20px; padding: 16px 20px; }
   .version, .install { padding-left: 20px; }
-  #play { width: 230px; gap: 12px; font-size: 27px; letter-spacing: 2px; }
+  #play { width: 230px; gap: 12px; font-size: 24px; letter-spacing: 2px; }
   #play svg { width: 24px; height: 24px; }
   select { min-width: 170px; }
   .install-row { gap: 12px; }
@@ -470,6 +470,6 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--green); }
 }
 
 @media (max-width: 1200px) {
-  #play { width: 210px; font-size: 25px; }
+  #play { width: 210px; font-size: 22px; }
   .drive { display: none; }
 }
