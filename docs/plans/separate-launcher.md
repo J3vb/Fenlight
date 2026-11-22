@@ -47,7 +47,8 @@ Not in (non-goals, and where each one goes instead):
 - A JS framework or npm bundler: plain HTML/CSS/JS files, no build step for
   the window. Later, only if the pages outgrow it.
 - Delta patches: full zip download, as in F-65. Later, when builds pass 1 GB.
-- Moving the game folder, playing an older version: later, if asked.
+- Moving an installed game to another folder, playing an older version: later, if asked
+  (step 6 picks the folder before the first install only).
 - Code signing of the exe: still blocked for EU individuals
   (`docs/RELEASING.md`). Tauri's update signature is separate and is in.
 - Server image, handshake, saves, channels: unchanged, stay in F-65.
@@ -260,7 +261,7 @@ unauthenticated limit. Idle it uses one WebView2 window and no game code.
 
 > 2026-11-20: built. News tests live in `launcher/core/tests/news.rs` (the window crate
 > has no tests); the concept copy is `docs/design/images/launcher_concept.jpg`. Repair game
-> files deletes the newest version and downloads it again (the SHA-256 check runs on the
+> files deletes the newest version and downloads it again (step 6 replaces this; the SHA-256 check runs on the
 > zip). The person signed off the look on 2026-11-20.
 
 - Build: the concept layout, 1280x720 minimum, resizable, custom title bar:
@@ -283,6 +284,33 @@ unauthenticated limit. Idle it uses one WebView2 window and no game code.
   Look: a Playwright screenshot of `ui/index.html` with fake data next to
   the concept, sent to the person.
 - Done when: the person signs off the launcher look against the concept.
+
+### Step 6: Pick where to install, Repair that checks files, fixed window
+
+> 2026-11-22, asked by the person after v0.1.1: the launcher installed the game on start,
+> Repair deleted the game and could end on Retry, a long status pushed the bottom bar out of
+> the window, and the window could be resized.
+
+- Build: no download on start. With no game installed, Play reads **Install** and opens an
+  Install dialog: the game folder (default `<data folder>/game`, where older installs
+  already are), **Browse…** (system folder picker; the game goes into a `Fenlight` folder
+  inside the pick), the space it needs (zip + unpacked, about 2.5x the zip) and the free
+  space on that drive; Install is off when the drive is too small. The folder is saved as
+  `install_dir` in `launcher.json`; updates, Repair, the hosted server and Open game folder
+  use it. Browse is refused once a version is installed (uninstall first). Updates still
+  install on their own once the game is installed.
+- Repair downloads the installed version's zip, checks its SHA-256, and rewrites only the
+  files whose size or CRC-32 differ from the zip; nothing is deleted first.
+- Window: one fixed size (1440x860), not resizable, no maximise button. The status line has
+  a fixed width and at most two lines.
+- Files: `launcher/core/src/{settings,install,feed}.rs`, `launcher/src-tauri/src/{main,pages}.rs`,
+  `tauri.conf.json`, `capabilities/default.json`, `launcher/ui/*`, `tauri-plugin-dialog`.
+- Tests: `cargo test` (install folder, old settings keep the old folder, repair replaces
+  only bad files and leaves player files, a bad zip touches nothing, no auto install with
+  nothing installed); `tools/ci/test_launcher_window.py` (fixed window, status width,
+  Install dialog, the window only downloads for updates).
+- Done when: a fresh launcher waits for Install, installs where the player picked, and v0.1.2
+  is released.
 
 ## Acceptance
 

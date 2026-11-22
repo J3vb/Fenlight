@@ -1,5 +1,6 @@
-// The bottom bar: asks the Rust side for the state, installs updates on its own, and Play
-// starts the newest installed game (docs/plans/separate-launcher.md, steps 1 and 5).
+// The bottom bar: asks the Rust side for the state. The first install waits for the player
+// to pick a folder and press Install; later updates install on their own. Play starts the
+// newest installed game (docs/plans/separate-launcher.md, steps 1 and 5).
 "use strict";
 
 const { invoke } = window.__TAURI__.core;
@@ -15,12 +16,21 @@ const diskUsed = document.getElementById("disk-used");
 const diskFree = document.getElementById("disk-free");
 
 let online = true;
-// Each version installs on its own once per run; after a failure Play turns into Retry.
+// An update installs on its own once per version and run; after a failure Play turns into Retry.
 let tried = "";
-let retry = false;
+// What the big button does: "play", "install" (opens the Install dialog) or "retry".
+let action = "play";
+
+const installAsk = document.getElementById("install-ask");
+const installPath = document.getElementById("install-path");
+const installNeed = document.getElementById("install-need");
+const installFree = document.getElementById("install-free");
+const installProblem = document.getElementById("install-problem");
+const installGo = document.getElementById("install-go");
 
 function showStatus(text, kind) {
   statusLine.textContent = text;
+  statusLine.title = text;
   statusLine.className = kind || "";
 }
 
@@ -46,32 +56,57 @@ function showChannels(state) {
   }
 }
 
+function showPlace(place) {
+  installPath.textContent = place.dir;
+  installPath.title = place.dir;
+  installNeed.textContent = place.need ? `Needs about ${gigabytes(place.need)}` : "";
+  installFree.textContent = `${gigabytes(place.free)} free on this drive`;
+  const tooSmall = place.need > place.free;
+  installProblem.textContent = tooSmall ? "Not enough free space here. Pick another drive." : "";
+  installGo.disabled = tooSmall;
+}
+
+async function askInstall() {
+  showPlace(await invoke("install_place"));
+  installAsk.hidden = false;
+}
+
+async function startInstall(newest) {
+  tried = newest.version;
+  showStatus(`Downloading v${newest.version}…`);
+  progressBar.value = 0;
+  try {
+    await invoke("install");
+  } catch (problem) {
+    showStatus(String(problem), "error");
+  }
+}
+
 async function show() {
   const state = await invoke("status");
   showChannels(state);
   document.dispatchEvent(new CustomEvent("launcher-state", { detail: state }));
   showDisk(state.busy);
   const newest = state.newest;
-  cancelButton.hidden = !state.busy;
   const installed = state.installed[0];
-  retry = !state.busy && state.update_ready && tried === newest.version;
-  playButton.disabled = state.busy || (!installed && !retry);
-  playText.textContent = state.busy ? "Installing" : retry && !installed ? "Retry" : "Play";
-  if (state.busy || retry) return;
-  if (state.update_ready) {
-    tried = newest.version;
-    playText.textContent = installed ? "Update" : "Install";
-    showStatus(`Downloading v${newest.version}…`);
-    progressBar.value = 0;
-    try {
-      await invoke("install");
-    } catch (problem) {
-      showStatus(String(problem), "error");
-    }
-    return show();
+  cancelButton.hidden = !state.busy;
+  action = installed ? "play" : "install";
+  if (state.auto_update && tried === newest.version && !state.busy) action = "retry";
+  playButton.disabled = state.busy || (!installed && !state.update_ready);
+  playText.textContent = state.busy ? "Installing" : { play: "Play", install: "Install", retry: "Retry" }[action];
+  if (state.busy) return;
+  if (state.auto_update && action !== "retry") {
+    playText.textContent = "Update";
+    playButton.disabled = true;
+    await startInstall(newest);
+    return;
   }
-  if (installed) {
+  if (action === "retry") {
+    showStatus(`Could not update to v${newest.version}. Press Retry.`, "error");
+  } else if (installed) {
     showStatus(online ? "Up to date" : `Offline: playing v${installed}`, online ? "ok" : "");
+  } else if (state.update_ready) {
+    showStatus(`v${newest.version} is ready to install.`);
   } else {
     showStatus(online ? "Nothing to install yet." : "Connect to the internet to install the game.", online ? "" : "error");
   }
@@ -103,13 +138,14 @@ listen("progress", (event) => {
 
 listen("finished", (event) => {
   const { ok, message } = event.payload;
-  showStatus(message, ok ? "ok" : "error");
-  show();
+  if (ok) tried = "";
+  show().then(() => showStatus(message, ok ? "ok" : "error"));
 });
 
 playButton.addEventListener("click", async () => {
   try {
-    if (retry && playText.textContent === "Retry") {
+    if (action === "install") return askInstall();
+    if (action === "retry") {
       tried = "";
       return show();
     }
@@ -117,6 +153,25 @@ playButton.addEventListener("click", async () => {
   } catch (problem) {
     showStatus(String(problem), "error");
   }
+});
+
+document.getElementById("install-browse").addEventListener("click", async () => {
+  try {
+    showPlace(await invoke("browse_install"));
+  } catch (problem) {
+    installProblem.textContent = String(problem);
+  }
+});
+
+installGo.addEventListener("click", async () => {
+  installAsk.hidden = true;
+  const state = await invoke("status");
+  if (state.newest) await startInstall(state.newest);
+  show();
+});
+
+document.getElementById("install-no").addEventListener("click", () => {
+  installAsk.hidden = true;
 });
 
 cancelButton.addEventListener("click", () => invoke("cancel"));

@@ -148,7 +148,7 @@ The separate launcher (F-82, `launcher/`) writes its own JSON lines to `launcher
 | Event | Level | Meaning |
 |---|---|---|
 | `check_failed` | warn | The launcher could not read the GitHub Releases list (`message` has the reason; "GitHub answered 403" = rate limit, 60 per hour per address). It plays the newest installed version offline |
-| `installed` | info | A release is downloaded, checked and unpacked into `game/versions/<version>/` (`message` = version) |
+| `installed` | info | A release is downloaded, checked and unpacked into `<game folder>/versions/<version>/` (`message` = "Installed v<version>.") |
 | `install_failed` | warn | A download failed, was cancelled, had the wrong SHA-256, or could not be unpacked (`message` says which). Nothing was installed |
 | `self_updated` | info | The launcher installed a newer launcher from the release's `latest.json` (`message` = manifest URL) and restarts |
 | `self_update_failed` | warn | A launcher update could not be checked, downloaded or installed (`message`; "signature" = the setup exe was not signed with our key). The old launcher keeps running |
@@ -158,7 +158,9 @@ The separate launcher (F-82, `launcher/`) writes its own JSON lines to `launcher
 | `server_exited` | info | The hosted server quit and was not restarted (`message` = exit code, or "launcher closed"). A quick exit after `server_started` = port in use; read `server/server.log` |
 | `server_draining` | info | A newer game is installed (`message` = version) and the drain file asks the hosted server to finish its match. No `server_update_restarted` within a match's length = the server never drained; read `server/server.log` |
 | `server_update_restarted` | info | The hosted server drained (exit code 3) and runs again on the newer version (`message`), same port and player limit |
-| `repair_started` | info | Repair game files deleted the newest version (`message`) so the launcher downloads it again |
+| `install_dir_picked` | info | The player picked a folder in the Install dialog (`message`); the game goes into a `Fenlight` folder inside it |
+| `repaired` | info | Repair game files checked the newest version against its release zip (`message` says how many files it replaced) |
+| `repair_failed` | warn | Repair could not download or check the zip, or could not write a file (`message`; "Close the game" = a file was in use). Nothing was deleted |
 | `uninstalled` | info | Uninstall game deleted every installed version. Saves and settings stay |
 
 ## Adding log lines (rules for agents)

@@ -1,5 +1,5 @@
 use launcher_core::feed::{Channel, API_URL};
-use launcher_core::settings::{data_dir, releases_api, versions_dir, Settings};
+use launcher_core::settings::{data_dir, install_folder, releases_api, versions_dir, Settings};
 use std::path::PathBuf;
 
 mod common;
@@ -17,6 +17,7 @@ fn channel_is_saved_and_loaded() {
         port: 7790,
         max_players: 4,
         close_on_play: false,
+        install_dir: Some(PathBuf::from("/games/Fenlight")),
     }
     .save(&dir)
     .unwrap();
@@ -24,6 +25,7 @@ fn channel_is_saved_and_loaded() {
     assert_eq!(loaded.channel, Channel::Test);
     assert_eq!((loaded.port, loaded.max_players), (7790, 4));
     assert!(!loaded.close_on_play);
+    assert_eq!(loaded.game_dir(&dir), PathBuf::from("/games/Fenlight"));
 }
 
 #[test]
@@ -34,6 +36,28 @@ fn old_settings_files_get_the_default_server_port() {
     assert_eq!(loaded.channel, Channel::Test);
     assert_eq!((loaded.port, loaded.max_players), (7777, 8));
     assert!(loaded.close_on_play);
+    assert_eq!(loaded.install_dir, None);
+    assert_eq!(
+        loaded.game_dir(&dir),
+        dir.join("game"),
+        "old installs stay where they are"
+    );
+}
+
+#[test]
+fn a_picked_folder_gets_its_own_fenlight_folder() {
+    assert_eq!(
+        install_folder(&PathBuf::from("/mnt/d")),
+        PathBuf::from("/mnt/d/Fenlight")
+    );
+    assert_eq!(
+        install_folder(&PathBuf::from("/games/Fenlight")),
+        PathBuf::from("/games/Fenlight")
+    );
+    assert_eq!(
+        install_folder(&PathBuf::from("/games/fenlight")),
+        PathBuf::from("/games/fenlight")
+    );
 }
 
 #[test]
@@ -54,7 +78,10 @@ fn command_line_test_hooks() {
         data_dir(&args(&["launcher", "--game-dir=/tmp/x"]), local),
         PathBuf::from("/tmp/x")
     );
-    assert_eq!(versions_dir(&PathBuf::from("/d")), PathBuf::from("/d/game/versions"));
+    assert_eq!(
+        versions_dir(&PathBuf::from("/d/game")),
+        PathBuf::from("/d/game/versions")
+    );
     assert_eq!(releases_api(&args(&[])), API_URL);
     assert_eq!(API_URL, "https://api.github.com/repos/J3vb/Fenlight/releases");
     assert_eq!(

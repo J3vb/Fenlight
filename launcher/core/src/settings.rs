@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 const SETTINGS_FILE: &str = "launcher.json";
+const GAME_FOLDER: &str = "Fenlight";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
@@ -16,6 +17,8 @@ pub struct Settings {
     pub max_players: u8,
     /// Close the launcher when the game starts (it stays open while hosting a server).
     pub close_on_play: bool,
+    /// Folder the player picked for the game; `None` means `<data folder>/game`.
+    pub install_dir: Option<PathBuf>,
 }
 
 impl Default for Settings {
@@ -25,6 +28,7 @@ impl Default for Settings {
             port: host::DEFAULT_PORT,
             max_players: host::MAX_PLAYERS,
             close_on_play: true,
+            install_dir: None,
         }
     }
 }
@@ -36,6 +40,12 @@ impl Settings {
             .ok()
             .and_then(|text| serde_json::from_str(&text).ok())
             .unwrap_or_default()
+    }
+
+    /// The game folder: the picked one, else `<data folder>/game` (where installs from before
+    /// the folder picker live).
+    pub fn game_dir(&self, data_dir: &Path) -> PathBuf {
+        self.install_dir.clone().unwrap_or_else(|| data_dir.join("game"))
     }
 
     pub fn save(&self, data_dir: &Path) -> Result<(), String> {
@@ -60,8 +70,21 @@ pub fn data_dir(args: &[String], local_data: PathBuf) -> PathBuf {
         .unwrap_or_else(|| local_data.join("Experiment Undead"))
 }
 
-pub fn versions_dir(data_dir: &Path) -> PathBuf {
-    data_dir.join("game").join("versions")
+pub fn versions_dir(game_dir: &Path) -> PathBuf {
+    game_dir.join("versions")
+}
+
+/// The game folder for a folder the player picked: its own `Fenlight` folder inside it, so
+/// picking a drive like `D:\` never fills the drive's top folder.
+pub fn install_folder(picked: &Path) -> PathBuf {
+    let named = picked
+        .file_name()
+        .is_some_and(|name| name.to_string_lossy().eq_ignore_ascii_case(GAME_FOLDER));
+    if named {
+        picked.to_path_buf()
+    } else {
+        picked.join(GAME_FOLDER)
+    }
 }
 
 /// The releases API: `--releases-api=` (tests), else GitHub.

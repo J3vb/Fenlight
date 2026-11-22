@@ -162,7 +162,6 @@
   }
   document.getElementById("hero-more").addEventListener("click", () => openItem(news[0].id));
   document.getElementById("win-min").addEventListener("click", () => appWindow.minimize());
-  document.getElementById("win-max").addEventListener("click", () => appWindow.toggleMaximize());
   document.getElementById("win-close").addEventListener("click", () => appWindow.close());
 
   document.getElementById("more").addEventListener("click", (event) => {
@@ -173,8 +172,8 @@
     moreMenu.hidden = true;
   });
   document.getElementById("repair").addEventListener("click", () =>
-    askFirst("Delete the installed game files and download them again?", "Repair", () =>
-      run("repair", "Game files deleted. Downloading them again."),
+    askFirst("Check the game files and replace any that are missing or damaged?", "Repair", () =>
+      run("repair", "Checking game files…"),
     ),
   );
   document.getElementById("uninstall").addEventListener("click", () =>

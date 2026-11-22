@@ -1,4 +1,4 @@
-use launcher_core::feed::{is_newer, newest, patches, Channel, LINUX_SUFFIX, WINDOWS_SUFFIX};
+use launcher_core::feed::{auto_update, find, is_newer, newest, patches, Channel, LINUX_SUFFIX, WINDOWS_SUFFIX};
 use serde_json::Value;
 
 mod common;
@@ -34,6 +34,31 @@ fn nothing_newer_than_installed() {
     assert!(!is_newer("0.1.1", &installed));
     assert!(is_newer("0.2.0-test.1", &installed));
     assert!(is_newer("0.1.0", &[]));
+}
+
+#[test]
+fn first_install_waits_for_the_player_and_updates_do_not() {
+    assert!(
+        !auto_update("0.1.1", &[]),
+        "nothing installed: wait for the Install button"
+    );
+    assert!(auto_update("0.1.1", &["0.1.0".to_string()]));
+    assert!(!auto_update("0.1.1", &["0.1.1".to_string()]));
+}
+
+#[test]
+fn find_gets_one_version_on_any_channel() {
+    assert_eq!(
+        find(&releases(), "0.1.0", WINDOWS_SUFFIX).expect("0.1.0").version,
+        "0.1.0"
+    );
+    assert_eq!(
+        find(&releases(), "0.2.0-test.1", WINDOWS_SUFFIX)
+            .expect("test build")
+            .version,
+        "0.2.0-test.1"
+    );
+    assert!(find(&releases(), "9.9.9", WINDOWS_SUFFIX).is_none());
 }
 
 #[test]

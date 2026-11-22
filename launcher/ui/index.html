@@ -9,7 +9,6 @@
 <body>
   <div class="titlebar" data-tauri-drag-region>
     <button id="win-min" class="win" aria-label="Minimise"><svg viewBox="0 0 12 12"><path d="M1 6h10"/></svg></button>
-    <button id="win-max" class="win" aria-label="Maximise"><svg viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9"/></svg></button>
     <button id="win-close" class="win close" aria-label="Close"><svg viewBox="0 0 12 12"><path d="M1 1l10 10M11 1L1 11"/></svg></button>
   </div>
 
@@ -154,6 +153,20 @@
       <p id="ask-text"></p>
       <button id="ask-yes" class="outline"></button>
       <button id="ask-no" class="outline quiet">Cancel</button>
+    </div>
+  </div>
+  <div id="install-ask" class="overlay" hidden>
+    <div class="dialog panel install-dialog">
+      <h3>Install Fenlight</h3>
+      <label>Install location</label>
+      <div class="path-row">
+        <span id="install-path"></span>
+        <button id="install-browse" class="outline quiet">Browse…</button>
+      </div>
+      <div class="meter-text"><span id="install-need"></span><span id="install-free"></span></div>
+      <p id="install-problem" class="error"></p>
+      <button id="install-go" class="outline">Install</button>
+      <button id="install-no" class="outline quiet">Cancel</button>
     </div>
   </div>
   <div id="close-ask" class="overlay" hidden>
