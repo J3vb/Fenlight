@@ -96,7 +96,8 @@ func test_source_chances_follow_enemy_data() -> void:
 	assert_eq(LootService.drop_chance(BLOATER, 40), 0.05)
 
 
-## Bug: a solo run to round 5 often found no gear (about 1.2 expected drops through round 5); the boost makes several likely.
+## Bug: a solo run to round 5 often found no gear (about 1.2 expected drops through round 5).
+## The early boost makes several likely.
 func test_a_solo_run_finds_several_items_by_round_5() -> void:
 	var rules: WaveRules = load("res://content/waves/default_waves.tres") as WaveRules
 	var expected: float = 0.0
