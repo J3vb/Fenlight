@@ -20,8 +20,8 @@ html, body { height: 100%; }
 
 body {
   display: grid;
-  grid-template-columns: var(--sidebar) 1fr;
-  grid-template-rows: 150px 1fr auto;
+  grid-template-columns: var(--sidebar) minmax(0, 1fr);
+  grid-template-rows: 150px minmax(0, 1fr) auto;
   gap: 18px 24px;
   margin: 0;
   padding: 0 24px 22px 0;
@@ -291,38 +291,54 @@ time { color: var(--muted); font-size: 12px; }
 .check { color: var(--text); text-transform: none; letter-spacing: 0; font-size: 15px; margin-top: 28px; }
 .check input { accent-color: var(--green); margin-right: 8px; }
 
-/* Bottom bar */
+/* Bottom bar: every part has a fixed or shrinkable width, so no text can push the bar out of
+   the window (tools/ci/launcher_layout.cjs checks it at each Windows display scale). */
 .bar {
   grid-column: 2;
   display: flex;
   align-items: center;
   gap: 28px;
+  min-width: 0;
   padding: 18px 24px;
 }
 
+/* One width for every label; progress shows as a light fill moving across the button. */
 #play {
+  position: relative;
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
   gap: 18px;
-  min-width: 320px;
+  width: 320px;
   height: 78px;
+  overflow: hidden;
   border: 1px solid #b6ff7a;
   border-radius: 6px;
   background: linear-gradient(180deg, var(--green), var(--green-deep));
   box-shadow: 0 0 24px rgba(141, 255, 58, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.4);
   color: #071006;
-  font-size: 38px;
+  font-size: 34px;
   font-weight: 800;
-  letter-spacing: 3px;
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 
-#play svg { width: 30px; height: 30px; fill: currentColor; stroke: none; }
+#play::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--done, 0%);
+  background: rgba(255, 255, 255, 0.28);
+}
+
+#play svg, #play-text { position: relative; }
+#play svg { flex: none; width: 30px; height: 30px; fill: currentColor; stroke: none; }
 #play:hover:not(:disabled) { box-shadow: 0 0 36px rgba(141, 255, 58, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.4); }
 #play:disabled { opacity: 0.55; }
 
 .version, .install { padding-left: 28px; border-left: 1px solid var(--line); }
+.version { flex: none; max-width: 260px; }
 .install { flex: 1; min-width: 0; }
 
 label {
@@ -335,7 +351,8 @@ label {
   letter-spacing: 2px;
 }
 
-.version-row, .install-row { display: flex; align-items: center; gap: 16px; }
+.version-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.install-row { display: flex; align-items: center; gap: 16px; }
 
 select, input[type="number"] {
   min-width: 200px;
@@ -352,10 +369,10 @@ input[type="number"] { min-width: 0; width: 100px; margin-left: 8px; }
 
 option { background: var(--fog); color: var(--text); }
 
-/* Fixed size, two lines at most, so a long message never pushes the bar out of the window. */
+/* Two lines at most under the version picker; the full text is in its tooltip. */
 #status {
   display: -webkit-box;
-  width: 240px;
+  max-width: 100%;
   margin: 0;
   overflow: hidden;
   -webkit-box-orient: vertical;
@@ -370,16 +387,19 @@ option { background: var(--fog); color: var(--text); }
 .error, #status.error { color: var(--red) !important; }
 
 .drive { width: 34px; height: 34px; color: var(--muted); flex: none; }
-.meter { flex: 1; min-width: 140px; }
-.meter-text { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 14px; }
+.meter { flex: 1; min-width: 0; }
+.meter-text { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; font-size: 14px; }
+.meter-text span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#disk-free { flex: none; }
 
 progress { width: 100%; height: 6px; border: 0; border-radius: 3px; background: #2a3638; appearance: none; }
 progress::-webkit-progress-bar { border-radius: 3px; background: #2a3638; }
 progress::-webkit-progress-value { border-radius: 3px; background: var(--green); }
 progress::-moz-progress-bar { border-radius: 3px; background: var(--green); }
 
-.more { position: relative; }
-#more { width: 44px; height: 44px; padding: 0; font-size: 20px; letter-spacing: 0; }
+.more { position: relative; flex: none; }
+#more, #cancel { flex: none; width: 44px; height: 44px; padding: 0; font-size: 20px; letter-spacing: 0; }
+#cancel { font-size: 16px; }
 
 .menu {
   position: absolute;
@@ -436,5 +456,21 @@ progress::-moz-progress-bar { border-radius: 3px; background: var(--green); }
   #page-play { grid-template-columns: 1fr 340px; }
   #latest li { grid-template-columns: 104px 1fr; }
   .hero h2 { font-size: 36px; }
-  #play { min-width: 260px; font-size: 32px; }
+  #play { width: 270px; font-size: 30px; }
+}
+
+/* 125% to 150% display scaling shrinks the window to about 1100 to 1300 wide. */
+@media (max-width: 1300px) {
+  .bar { gap: 20px; padding: 16px 20px; }
+  .version, .install { padding-left: 20px; }
+  #play { width: 230px; gap: 12px; font-size: 24px; letter-spacing: 2px; }
+  #play svg { width: 24px; height: 24px; }
+  select { min-width: 170px; }
+  .install-row { gap: 12px; }
+  .meter-text { font-size: 13px; }
+}
+
+@media (max-width: 1200px) {
+  #play { width: 210px; font-size: 22px; }
+  .drive { display: none; }
 }

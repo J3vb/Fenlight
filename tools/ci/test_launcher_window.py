@@ -1,5 +1,6 @@
 """Launcher window rules: a fixed-size window, a bottom bar that never grows out of it, and
-an Install dialog instead of installing on start; stdlib only."""
+an Install dialog instead of installing on start; stdlib only. The real layout check at each
+Windows display scale is tools/ci/launcher_layout.cjs."""
 
 import json
 import re
@@ -31,12 +32,27 @@ class WindowTests(unittest.TestCase):
         self.assertNotIn('id="win-max"', self.html)
         self.assertNotIn("maximize", self.capability)
 
-    def test_status_line_cannot_push_the_bar_out_of_the_window(self):
+    def test_bottom_bar_parts_cannot_push_the_bar_out_of_the_window(self):
+        self.assertIn("minmax(0, 1fr)", css_rule(self.css, "body"))
         status = css_rule(self.css, "#status")
-        self.assertRegex(status, r"(?<![-\w])width:\s*\d+px")
         self.assertIn("overflow: hidden", status)
+        self.assertIn("-webkit-line-clamp: 2", status)
         self.assertNotIn("nowrap", status)
+        play = css_rule(self.css, "#play")
+        self.assertRegex(play, r"(?<![-\w])width:\s*\d+px")
+        self.assertIn("flex: none", play)
+        self.assertIn("overflow: hidden", play)
         self.assertIn("min-width: 0", css_rule(self.css, ".install"))
+        self.assertIn("min-width: 0", css_rule(self.css, ".meter"))
+
+    def test_play_label_has_no_changing_percentage(self):
+        app = (LAUNCHER / "ui" / "app.js").read_text(encoding="utf-8")
+        self.assertNotIn("`Installing ${", app)
+        self.assertIn('setProperty("--done"', app)
+
+    def test_layout_check_runs_in_ci(self):
+        workflow = (LAUNCHER.parent / ".github" / "workflows" / "launcher.yml").read_text(encoding="utf-8")
+        self.assertIn("node tools/ci/launcher_layout.cjs", workflow)
 
     def test_install_dialog_has_location_browse_and_install(self):
         for element in ("install-ask", "install-path", "install-browse", "install-free", "install-go"):

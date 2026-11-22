@@ -12,12 +12,14 @@ on:
       - "tests/fixtures/version_table.json"
       - "tests/fixtures/releases.json"
       - ".github/workflows/launcher.yml"
+      - "tools/ci/launcher_layout.cjs"
   pull_request:
     paths:
       - "launcher/**"
       - "tests/fixtures/version_table.json"
       - "tests/fixtures/releases.json"
       - ".github/workflows/launcher.yml"
+      - "tools/ci/launcher_layout.cjs"
 
 concurrency:
   group: launcher-${{ github.ref }}
@@ -50,6 +52,34 @@ jobs:
 
       - name: Tests
         run: cargo test --workspace
+
+  layout:
+    # The launcher UI in Chromium (what WebView2 runs) at each common screen and Windows display
+    # scale: nothing in the bottom bar may leave the window.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright with Chromium
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/pw" playwright@1.49.1
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+
+      - name: Layout at each window size and display scale
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node tools/ci/launcher_layout.cjs layout-shots
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launcher-layout
+          path: layout-shots
 
   windows:
     runs-on: windows-latest

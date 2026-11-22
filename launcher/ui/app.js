@@ -43,9 +43,10 @@ function gigabytes(bytes) {
 
 async function showDisk(busy) {
   const disk = await invoke("disk");
-  diskUsed.textContent = disk.installed ? gigabytes(disk.installed) : "Not installed";
   diskFree.textContent = `${gigabytes(disk.free)} free`;
+  // While installing, the progress event owns the used text and the bar.
   if (!busy) {
+    diskUsed.textContent = disk.installed ? gigabytes(disk.installed) : "Not installed";
     const total = disk.installed + disk.free;
     progressBar.value = total > 0 ? Math.max(1, Math.round((disk.installed * 100) / total)) : 0;
   }
@@ -95,6 +96,7 @@ async function show() {
   const newest = state.newest;
   const installed = state.installed[0];
   cancelButton.hidden = !state.busy;
+  if (!state.busy) playButton.style.setProperty("--done", "0%");
   action = installed ? "play" : "install";
   if (state.auto_update && tried === newest.version && !state.busy) action = "retry";
   playButton.disabled = state.busy || (!installed && !state.update_ready);
@@ -148,7 +150,9 @@ listen("started_again", () => {
 listen("progress", (event) => {
   const { done, total } = event.payload;
   progressBar.value = total > 0 ? Math.floor((done * 100) / total) : 0;
-  playText.textContent = progressBar.value >= 100 ? "Checking" : `Installing ${progressBar.value}%`;
+  playButton.style.setProperty("--done", `${progressBar.value}%`);
+  playText.textContent = progressBar.value >= 100 ? "Checking" : "Installing";
+  diskUsed.textContent = total > 0 ? `${progressBar.value}% · ${gigabytes(done)} of ${gigabytes(total)}` : "";
 });
 
 listen("finished", (event) => {
