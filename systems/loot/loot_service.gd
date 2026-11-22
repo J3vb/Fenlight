@@ -91,6 +91,7 @@ func _on_enemy_killed(enemy: Node3D, info: DamageInfo) -> void:
 	var zombie: Zombie = enemy as Zombie
 	if zombie == null or zombie.data == null or not session.spawner.is_ancestor_of(zombie):
 		return
+	var at: Vector3 = zombie.drop_point()
 	for owner_player: Player in session.get_players():
 		var owner_id: int = owner_player.get_multiplayer_authority()
 		var level: int = session.handshake.player_level(owner_id)
@@ -98,7 +99,7 @@ func _on_enemy_killed(enemy: Node3D, info: DamageInfo) -> void:
 		var luck: float = clampf(gear_luck + maxf(session.director.round_number - 10, 0) * 0.02, 0, 1)
 		var item: Dictionary = roll_drop(zombie.data, level, luck)
 		if not item.is_empty():
-			send_drop(owner_id, item, zombie.global_position)
+			send_drop(owner_id, item, at)
 
 
 static func player_luck(owner_player: Player, round_number: int) -> float:

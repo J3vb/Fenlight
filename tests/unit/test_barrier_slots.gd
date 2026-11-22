@@ -60,3 +60,13 @@ func test_one_vaulter_at_a_time() -> void:
 	assert_false(barrier.try_start_vault(b), "second zombie waits")
 	barrier.release(a)
 	assert_true(barrier.try_start_vault(b), "next one goes once the first is through")
+
+
+func test_drop_point_sits_inside_in_line_and_on_the_killed_zombies_floor() -> void:
+	var killed_at: Vector3 = barrier.queue_point(0) + Vector3.DOWN * 0.2
+	var point: Vector3 = barrier.drop_point(killed_at)
+	assert_almost_eq((point - barrier.global_position).dot(barrier.global_basis.z), Barrier.INSIDE_DEPTH, 0.001)
+	assert_almost_eq(barrier.global_basis.x.dot(point - barrier.global_position), -Barrier.SLOT_SPACING, 0.001)
+	assert_almost_eq(point.y, killed_at.y, 0.001)
+	var far_side: Vector3 = barrier.drop_point(barrier.global_position + barrier.global_basis.x * 5.0)
+	assert_almost_eq(barrier.global_basis.x.dot(far_side - barrier.global_position), Barrier.SLOT_SPACING, 0.001)

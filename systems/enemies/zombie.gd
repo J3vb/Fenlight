@@ -233,6 +233,12 @@ func restart_chase() -> void:
 	_enter(State.CHASING)
 
 
+## Where this zombie's loot and power-ups land: inside its window when it died
+## outside (still queued, tearing or vaulting), else where it fell.
+func drop_point() -> Vector3:
+	return barrier.drop_point(global_position) if barrier else global_position
+
+
 ## The round's last zombies run at least this fast so the round never stalls.
 func hurry(speed: float) -> void:
 	_speed = maxf(_speed, speed)

@@ -235,15 +235,16 @@ func _on_enemy_killed(enemy: Node3D, info: DamageInfo) -> void:
 	var killer: Player = info.attacker as Player
 	if not multiplayer.is_server() or killer == null:
 		return
+	var at: Vector3 = (enemy as Zombie).drop_point() if enemy is Zombie else enemy.global_position
 	if killer.has_serum(&"scavenger") and session.rng.randf() < ammo_pack_chance:
-		_spawn(ammo_pack, enemy.global_position)
+		_spawn(ammo_pack, at)
 	if dropped_this_round >= max_per_round or power_ups.is_empty():
 		return
 	if session.rng.randf() < drop_chance:
 		var first: PowerUpData = _next()
-		drop(first, enemy.global_position)
+		drop(first, at)
 		if killer.skill_rules.has(SkillNodeData.Rule.CHAIN_SUPPLY) and session.rng.randf() < CHAIN_CHANCE:
-			_chain(first, enemy.global_position + CHAIN_OFFSET)
+			_chain(first, at + CHAIN_OFFSET)
 
 
 ## A second power-up of another kind, outside the round cap; none when the deck has one kind.
