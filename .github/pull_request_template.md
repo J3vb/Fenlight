@@ -12,6 +12,11 @@ Plan: <!-- docs/plans/<file>.md, step N, or "none: <why no plan is needed>" -->
 
 <!-- Which tests you added or changed. For feel/visual changes, what you checked in-game. -->
 
+### Review
+<!-- Run the pre-merge-review skill before marking this PR ready. CI checks the "Review:" line on a ready PR. -->
+Review: <!-- fresh subagent at <sha>; checklists: game, coop   OR   skipped, docs only -->
+<!-- Counts, then one line per finding: `path:line` problem - fixed in <sha> / declined: reason / not a bug: why -->
+
 ### Ready to build
 <!-- Link the plan that has the filled-in checklist from docs/FOUNDATIONS.md#ready-to-build,
 or paste it here for a small change. Write n.a. only for docs, art or test-only PRs. -->
@@ -35,4 +40,4 @@ or paste it here for a small change. Write n.a. only for docs, art or test-only 
 - [ ] Structure rules pass (tools/ci/check_rules.py)
 - [ ] Only touched files this task needed
 - [ ] One label: `new`, `fix`, `balance` or `tech`
-- [ ] Automatic review arrived for the latest commit, every comment fixed or answered and resolved
+- [ ] Review section filled: every Blocking finding fixed, every declined Suggestion has a reason

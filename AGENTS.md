@@ -47,6 +47,7 @@ files in `.claude/skills/` (Claude Code). Load the one that fits your task:
 | `write-plan` | Writing a feature plan in `docs/plans/` before building |
 | `review-plan` | Reviewing a plan PR before it is approved |
 | `finish-feature` | Checking a feature against the Definition of done and closing it |
+| `pre-merge-review` | An independent review of your diff before the PR is marked ready |
 
 Third-party skills (Apache-2.0, from gamedev-skills/awesome-gamedev-agent-skills, see
 `docs/CREDITS.md`) are general Godot 4.7.2 and game-design guides; each one's
@@ -243,11 +244,10 @@ signs and list them in the `docs/LOGGING.md` catalogue.
 
 - You may squash-merge your own PR, no human approval needed, when `quality`,
   `test` and `soak` are green on the head commit. CI is the merge gate.
-- Codex reviews PRs when it has quota. It runs when a PR is marked ready and
-  not on later pushes: after a push with changes, comment `@codex review` once.
-  Fix its comments in the PR if it arrives before the merge, else in a
-  follow-up PR. A "Blocking" or P0/P1 finding is always fixed; a "Suggestion"
-  you decline gets a reason. Resolve each conversation.
+- **Review before ready.** Run the `pre-merge-review` skill: a fresh
+  subagent reviews your diff. Fix every Blocking finding, give a reason for
+  each declined Suggestion, and fill the PR's `Review:` line (CI checks it).
+  Handle other review comments the same way; resolve each conversation.
 - Never merge with a red or pending check, and never merge someone else's PR.
 - Each PR gets exactly one label for release notes: `new`, `fix`, `balance`
   or `tech`.
