@@ -1,5 +1,5 @@
 use launcher_core::feed::Release;
-use launcher_core::install::{game_exe_name, sha256_file, Installer, KEEP};
+use launcher_core::install::{game_exe_name, sha256_file, space_needed, Installer, KEEP};
 use std::sync::atomic::AtomicBool;
 
 mod common;
@@ -162,4 +162,63 @@ fn remove_and_remove_all_skip_versions_in_use() {
     installer.in_use.clear();
     installer.remove_all().unwrap();
     assert!(installer.installed().is_empty());
+}
+
+#[test]
+fn repair_replaces_only_missing_or_damaged_files() {
+    let dir = common::temp_dir("repair");
+    let zip = common::game_zip(game_exe_name());
+    let digest = digest_of(&zip, &dir);
+    let installer = Installer::new(dir.join("versions"));
+    let folder = installer
+        .install(
+            &release(common::serve(zip.clone(), None), digest.clone(), "0.1.1"),
+            &AtomicBool::new(false),
+            &mut |_, _| {},
+        )
+        .expect("installed");
+    let good = release(common::serve(zip, None), digest, "0.1.1");
+    let fine = installer
+        .repair(&good, &AtomicBool::new(false), &mut |_, _| {})
+        .expect("checked");
+    assert_eq!(fine, 0, "nothing to replace in a good install");
+
+    std::fs::write(folder.join("ExperimentUndead.pck"), b"game pacK").unwrap();
+    std::fs::remove_file(folder.join(game_exe_name())).unwrap();
+    std::fs::write(folder.join("settings.cfg"), b"player file").unwrap();
+    let replaced = installer
+        .repair(&good, &AtomicBool::new(false), &mut |_, _| {})
+        .expect("repaired");
+    assert_eq!(replaced, 2);
+    assert_eq!(
+        std::fs::read(folder.join("ExperimentUndead.pck")).unwrap(),
+        b"game pack"
+    );
+    assert_eq!(std::fs::read(folder.join(game_exe_name())).unwrap(), b"game exe");
+    assert_eq!(std::fs::read(folder.join("settings.cfg")).unwrap(), b"player file");
+    assert_eq!(installer.installed(), vec!["0.1.1".to_string()]);
+}
+
+#[test]
+fn repair_with_a_bad_download_touches_nothing() {
+    let dir = common::temp_dir("repair-bad");
+    let zip = common::game_zip(game_exe_name());
+    let installer = Installer::new(dir.join("versions"));
+    let folder = dir.join("versions").join("0.1.1");
+    std::fs::create_dir_all(&folder).unwrap();
+    std::fs::write(folder.join("ExperimentUndead.pck"), b"old").unwrap();
+    let result = installer.repair(
+        &release(common::serve(zip, None), "0".repeat(64), "0.1.1"),
+        &AtomicBool::new(false),
+        &mut |_, _| {},
+    );
+    assert_eq!(result, Err("The download was damaged. Try again.".to_string()));
+    assert_eq!(std::fs::read(folder.join("ExperimentUndead.pck")).unwrap(), b"old");
+    assert!(!dir.join("versions").join(".downloads").exists());
+}
+
+#[test]
+fn install_needs_room_for_the_zip_and_the_game() {
+    assert_eq!(space_needed(1_000_000_000), 2_500_000_000);
+    assert_eq!(space_needed(0), 0);
 }

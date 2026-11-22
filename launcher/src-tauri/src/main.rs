@@ -31,11 +31,17 @@ struct Launcher {
 impl Launcher {
     /// The installer, told which version a hosted server runs so it is never deleted.
     fn installer(&self) -> Installer {
-        let mut installer = Installer::new(settings::versions_dir(&self.data_dir));
+        let mut installer = Installer::new(settings::versions_dir(&self.game_dir()));
         if let Some(version) = self.hosting() {
             installer.in_use.push(version);
         }
         installer
+    }
+
+    /// The game folder. Locks the settings only for this line, so callers never hold it.
+    fn game_dir(&self) -> PathBuf {
+        let saved = self.settings.lock().map(|saved| saved.clone()).unwrap_or_default();
+        saved.game_dir(&self.data_dir)
     }
 
     fn hosting(&self) -> Option<String> {
@@ -60,6 +66,8 @@ struct Status {
     stable: Option<String>,
     test: Option<String>,
     update_ready: bool,
+    /// A newer version installs on its own: only once the game is installed.
+    auto_update: bool,
     close_on_play: bool,
     hosting: bool,
     busy: bool,
@@ -85,6 +93,9 @@ fn status(launcher: State<'_, Launcher>) -> Status {
     let update_ready = newest
         .as_ref()
         .is_some_and(|release| feed::is_newer(&release.version, &installed));
+    let auto_update = newest
+        .as_ref()
+        .is_some_and(|release| feed::auto_update(&release.version, &installed));
     let saved = launcher.settings.lock().map(|saved| saved.clone()).unwrap_or_default();
     let on_channel = |channel: Channel| {
         let releases = launcher.releases.lock().ok()?;
@@ -98,11 +109,12 @@ fn status(launcher: State<'_, Launcher>) -> Status {
         newest,
         stable: on_channel(Channel::Stable),
         test: on_channel(Channel::Test),
+        auto_update,
         update_ready,
         close_on_play: saved.close_on_play,
         hosting: launcher.hosting().is_some(),
         busy: launcher.busy.load(Ordering::Relaxed),
-        game_dir: settings::versions_dir(&launcher.data_dir).display().to_string(),
+        game_dir: launcher.game_dir().display().to_string(),
     }
 }
 
@@ -137,8 +149,38 @@ fn set_channel(launcher: State<'_, Launcher>, channel: Channel) -> Result<(), St
 #[tauri::command]
 fn install(app: AppHandle, launcher: State<'_, Launcher>) -> Result<(), String> {
     let release = launcher.newest().ok_or("No release to install.")?;
+    start_download(app, &launcher, release, false)
+}
+
+/// Repair game files: checks the newest installed version against its release zip and
+/// replaces only the files that are missing or damaged. Same events as `install`.
+#[tauri::command]
+fn repair(app: AppHandle, launcher: State<'_, Launcher>) -> Result<(), String> {
+    if launcher.hosting().is_some() {
+        return Err("Stop your server first.".into());
+    }
+    let version = launcher
+        .installer()
+        .installed()
+        .into_iter()
+        .next()
+        .ok_or("The game is not installed.")?;
+    let release = {
+        let releases = launcher.releases.lock().map_err(|error| error.to_string())?;
+        let list = releases
+            .as_deref()
+            .ok_or("Connect to the internet to repair the game.")?;
+        feed::find(list, &version, feed::platform_suffix())
+    }
+    .ok_or(format!(
+        "v{version} can no longer be downloaded, so it cannot be repaired."
+    ))?;
+    start_download(app, &launcher, release, true)
+}
+
+fn start_download(app: AppHandle, launcher: &Launcher, release: Release, repair: bool) -> Result<(), String> {
     if launcher.busy.swap(true, Ordering::Relaxed) {
-        return Err("Already installing.".into());
+        return Err("Wait for the download to finish.".into());
     }
     launcher.cancel.store(false, Ordering::Relaxed);
     let installer = launcher.installer();
@@ -153,17 +195,32 @@ fn install(app: AppHandle, launcher: State<'_, Launcher>) -> Result<(), String> 
                 let _ = app.emit("progress", Progress { done, total });
             }
         };
-        let result = installer.install(&release, &cancel, &mut report);
+        let version = &release.version;
+        let result = if repair {
+            installer
+                .repair(&release, &cancel, &mut report)
+                .map(|replaced| match replaced {
+                    0 => format!("All game files of v{version} are fine."),
+                    1 => format!("Repaired v{version}: replaced 1 file."),
+                    count => format!("Repaired v{version}: replaced {count} files."),
+                })
+        } else {
+            installer
+                .install(&release, &cancel, &mut report)
+                .map(|_| format!("Installed v{version}."))
+        };
+        let (event, failed) = if repair {
+            ("repaired", "repair_failed")
+        } else {
+            ("installed", "install_failed")
+        };
         let finished = match result {
-            Ok(_) => {
-                log::write(&data_dir, "info", "installed", &release.version);
-                Finished {
-                    ok: true,
-                    message: format!("Installed v{}.", release.version),
-                }
+            Ok(message) => {
+                log::write(&data_dir, "info", event, &message);
+                Finished { ok: true, message }
             }
             Err(message) => {
-                log::write(&data_dir, "warn", "install_failed", &message);
+                log::write(&data_dir, "warn", failed, &message);
                 Finished { ok: false, message }
             }
         };
@@ -255,10 +312,25 @@ fn play(app: AppHandle, launcher: State<'_, Launcher>) -> Result<(), String> {
     Ok(())
 }
 
+/// The window has one fixed size; on a smaller screen (or high display scaling) it shrinks
+/// once to fit, so Play is never under the taskbar.
+fn fit_to_screen(window: &tauri::WebviewWindow) {
+    let (Ok(Some(monitor)), Ok(size)) = (window.current_monitor(), window.outer_size()) else {
+        return;
+    };
+    let area = monitor.work_area().size;
+    if size.width > area.width || size.height > area.height {
+        let fitted = tauri::PhysicalSize::new(size.width.min(area.width), size.height.min(area.height));
+        let _ = window.set_size(fitted);
+        let _ = window.center();
+    }
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .setup(move |app| {
             let app_data = app.path().app_local_data_dir()?;
             let data_dir = settings::data_dir(&args, app_data);
@@ -271,6 +343,9 @@ fn main() {
                 busy: AtomicBool::new(false),
                 host: Mutex::new(Host::new(data_dir.join("server"))),
             });
+            if let Some(window) = app.get_webview_window("main") {
+                fit_to_screen(&window);
+            }
             let handle = app.handle().clone();
             std::thread::spawn(move || host::watch(handle));
             Ok(())
@@ -290,6 +365,7 @@ fn main() {
             self_update,
             set_channel,
             install,
+            repair,
             cancel,
             play,
             host::host_status,
@@ -300,7 +376,8 @@ fn main() {
             pages::news,
             pages::patches,
             pages::disk,
-            pages::repair,
+            pages::install_place,
+            pages::browse_install,
             pages::uninstall,
             pages::set_close_on_play,
             pages::open_place

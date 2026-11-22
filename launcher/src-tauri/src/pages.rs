@@ -3,13 +3,15 @@
 
 use crate::Launcher;
 use launcher_core::feed::{self, Patch};
+use launcher_core::install;
 use launcher_core::log;
 use launcher_core::news::{self, NewsItem};
 use launcher_core::settings;
 use serde::Serialize;
 use std::path::Path;
 use std::sync::atomic::Ordering;
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
+use tauri_plugin_dialog::DialogExt;
 
 const ISSUES_URL: &str = "https://github.com/J3vb/Fenlight/issues";
 
@@ -49,17 +51,73 @@ pub fn disk(launcher: State<'_, Launcher>) -> Disk {
     }
 }
 
-/// Deletes the newest installed version so the window installs it again, checked fresh.
+/// The Install dialog: where the game goes, the free space there and the space it needs.
+#[derive(Serialize)]
+pub struct InstallPlace {
+    dir: String,
+    free: u64,
+    need: u64,
+}
+
 #[tauri::command]
-pub fn repair(launcher: State<'_, Launcher>) -> Result<(), String> {
-    let installer = idle_installer(&launcher)?;
-    let version = installer
-        .installed()
-        .into_iter()
-        .next()
-        .ok_or("The game is not installed.")?;
-    installer.remove(&version)?;
-    log::write(&launcher.data_dir, "info", "repair_started", &version);
+pub fn install_place(launcher: State<'_, Launcher>) -> InstallPlace {
+    let installer = launcher.installer();
+    InstallPlace {
+        dir: launcher.game_dir().display().to_string(),
+        free: installer.free_space(),
+        need: launcher
+            .newest()
+            .map(|release| install::space_needed(release.size))
+            .unwrap_or(0),
+    }
+}
+
+/// Browse in the Install dialog: the system folder picker, then the game goes into a
+/// `Fenlight` folder inside the pick. Only before the first install, so installed versions
+/// are never left behind in the old folder. The window never passes a path.
+#[tauri::command]
+pub async fn browse_install(app: AppHandle) -> Result<InstallPlace, String> {
+    let start = {
+        let launcher = app.state::<Launcher>();
+        can_move(&launcher)?;
+        launcher.game_dir()
+    };
+    let start = start.ancestors().find(|dir| dir.is_dir()).map(Path::to_path_buf);
+    let picker = app.clone();
+    let picked = tauri::async_runtime::spawn_blocking(move || {
+        let mut dialog = picker.dialog().file().set_title("Install Fenlight in");
+        if let Some(window) = picker.get_webview_window("main") {
+            dialog = dialog.set_parent(&window);
+        }
+        if let Some(dir) = start {
+            dialog = dialog.set_directory(dir);
+        }
+        dialog.blocking_pick_folder()
+    })
+    .await
+    .map_err(|error| error.to_string())?;
+    let launcher = app.state::<Launcher>();
+    if let Some(picked) = picked {
+        // Checked again: an install may have started while the picker was open.
+        can_move(&launcher)?;
+        let picked = picked.into_path().map_err(|error| error.to_string())?;
+        let mut saved = launcher.settings.lock().map_err(|error| error.to_string())?;
+        saved.install_dir = Some(settings::install_folder(&picked));
+        saved.save(&launcher.data_dir)?;
+        log::write(
+            &launcher.data_dir,
+            "info",
+            "install_dir_picked",
+            &picked.display().to_string(),
+        );
+    }
+    Ok(install_place(launcher))
+}
+
+fn can_move(launcher: &Launcher) -> Result<(), String> {
+    if !launcher.installer().installed().is_empty() || launcher.busy.load(Ordering::Relaxed) {
+        return Err("Uninstall the game first to install it somewhere else.".into());
+    }
     Ok(())
 }
 
@@ -92,7 +150,7 @@ pub fn set_close_on_play(launcher: State<'_, Launcher>, close: bool) -> Result<(
 #[tauri::command]
 pub fn open_place(launcher: State<'_, Launcher>, place: String) -> Result<(), String> {
     let target = match place.as_str() {
-        "game" => settings::versions_dir(&launcher.data_dir),
+        "game" => launcher.game_dir(),
         "logs" => launcher.data_dir.clone(),
         "issues" => return open(ISSUES_URL),
         _ => return Err(format!("Unknown place {place}.")),

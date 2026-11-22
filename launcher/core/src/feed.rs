@@ -89,9 +89,23 @@ pub fn newest(releases: &[Value], channel: Channel, suffix: &str) -> Option<Rele
         .max_by(|a, b| version::compare(&a.version, &b.version))
 }
 
+/// The release of one version, whatever its channel: Repair fetches what is installed.
+pub fn find(releases: &[Value], version: &str, suffix: &str) -> Option<Release> {
+    releases
+        .iter()
+        .filter_map(|entry| installable(entry, Channel::Test, suffix))
+        .find(|release| release.version == version)
+}
+
 /// True when version is newer than every installed one.
 pub fn is_newer(version: &str, installed: &[String]) -> bool {
     installed.iter().all(|other| version::compare(version, other).is_gt())
+}
+
+/// Updates install on their own once the game is installed. The first install waits for the
+/// player to pick a folder and press Install.
+pub fn auto_update(newest: &str, installed: &[String]) -> bool {
+    !installed.is_empty() && is_newer(newest, installed)
 }
 
 /// Download address of the launcher update manifest in the newest release on the channel that

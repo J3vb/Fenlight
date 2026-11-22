@@ -24,6 +24,12 @@ pub fn game_exe_name() -> &'static str {
     }
 }
 
+/// Free bytes an install needs: the zip download plus the unpacked game, which is about one
+/// and a half times the zip.
+pub fn space_needed(zip_size: u64) -> u64 {
+    zip_size.saturating_mul(5) / 2
+}
+
 pub struct Installer {
     /// Folder that holds one folder per installed version.
     pub versions_dir: PathBuf,
@@ -66,11 +72,64 @@ impl Installer {
         cancel: &AtomicBool,
         progress: &mut dyn FnMut(u64, u64),
     ) -> Result<PathBuf, String> {
+        self.with_download(release, cancel, progress, |zip_path| {
+            self.install_zip(zip_path, &release.digest, &release.version)
+        })
+    }
+
+    /// Repair game files: downloads the release zip, checks it, then rewrites only the files
+    /// of the installed version that are missing or differ from it. Returns how many.
+    pub fn repair(
+        &self,
+        release: &Release,
+        cancel: &AtomicBool,
+        progress: &mut dyn FnMut(u64, u64),
+    ) -> Result<usize, String> {
+        self.with_download(release, cancel, progress, |zip_path| {
+            self.repair_zip(zip_path, &release.digest, &release.version)
+        })
+    }
+
+    /// Compares every file in the zip with the installed copy (size and CRC-32 the zip keeps
+    /// per file) and rewrites the ones that differ. Files the zip does not have stay.
+    pub fn repair_zip(&self, zip_path: &Path, digest: &str, version: &str) -> Result<usize, String> {
+        check_digest(zip_path, digest)?;
+        let folder = self.versions_dir.join(version);
+        let could_not = || format!("Could not repair {}. Close the game and try again.", folder.display());
+        let mut archive = File::open(zip_path)
+            .ok()
+            .and_then(|file| zip::ZipArchive::new(file).ok())
+            .ok_or("The download was damaged. Try again.")?;
+        let mut replaced = 0;
+        for index in 0..archive.len() {
+            let mut entry = archive.by_index(index).map_err(|_| could_not())?;
+            let Some(relative) = entry.enclosed_name() else {
+                return Err("The download was damaged. Try again.".into());
+            };
+            if entry.is_dir() {
+                continue;
+            }
+            let path = folder.join(relative);
+            if file_matches(&path, entry.size(), entry.crc32()) {
+                continue;
+            }
+            write_entry(&mut entry, &path).map_err(|_| could_not())?;
+            replaced += 1;
+        }
+        Ok(replaced)
+    }
+
+    fn with_download<T>(
+        &self,
+        release: &Release,
+        cancel: &AtomicBool,
+        progress: &mut dyn FnMut(u64, u64),
+        then: impl FnOnce(&Path) -> Result<T, String>,
+    ) -> Result<T, String> {
         let downloads = self.versions_dir.join(".downloads");
         fs::create_dir_all(&downloads).map_err(|_| self.write_problem())?;
         let zip_path = downloads.join(format!("{}.zip", release.version));
-        let result = download(&release.url, release.size, &zip_path, cancel, progress)
-            .and_then(|_| self.install_zip(&zip_path, &release.digest, &release.version));
+        let result = download(&release.url, release.size, &zip_path, cancel, progress).and_then(|_| then(&zip_path));
         let _ = fs::remove_file(&zip_path);
         let _ = fs::remove_dir(&downloads);
         result
@@ -78,9 +137,7 @@ impl Installer {
 
     /// Checks the zip against the digest and unpacks it into `versions/<version>/`.
     pub fn install_zip(&self, zip_path: &Path, digest: &str, version: &str) -> Result<PathBuf, String> {
-        if sha256_file(zip_path).map_err(|_| "The download was damaged. Try again.".to_string())? != digest {
-            return Err("The download was damaged. Try again.".into());
-        }
+        check_digest(zip_path, digest)?;
         let final_dir = self.versions_dir.join(version);
         let temp_dir = self.versions_dir.join(format!("{version}.tmp"));
         let _ = fs::remove_dir_all(&temp_dir);
@@ -121,7 +178,7 @@ impl Installer {
             .unwrap_or(0)
     }
 
-    /// Deletes one version folder, so the next check installs it fresh (Repair game files).
+    /// Deletes one version folder.
     pub fn remove(&self, version: &str) -> Result<(), String> {
         if !version::is_release_version(version) || self.in_use.iter().any(|name| name == version) {
             return Err(format!("v{version} is in use."));
@@ -144,6 +201,40 @@ impl Installer {
             self.versions_dir.display()
         )
     }
+}
+
+fn check_digest(zip_path: &Path, digest: &str) -> Result<(), String> {
+    match sha256_file(zip_path) {
+        Ok(found) if found == digest => Ok(()),
+        _ => Err("The download was damaged. Try again.".into()),
+    }
+}
+
+/// True when the file exists with this size and CRC-32.
+fn file_matches(path: &Path, size: u64, crc: u32) -> bool {
+    if fs::metadata(path).map(|meta| meta.len()).ok() != Some(size) {
+        return false;
+    }
+    let Ok(mut file) = File::open(path) else {
+        return false;
+    };
+    let mut hasher = crc32fast::Hasher::new();
+    let mut buffer = vec![0u8; CHUNK];
+    loop {
+        match file.read(&mut buffer) {
+            Ok(0) => return hasher.finalize() == crc,
+            Ok(read) => hasher.update(&buffer[..read]),
+            Err(_) => return false,
+        }
+    }
+}
+
+fn write_entry(entry: &mut impl Read, path: &Path) -> io::Result<()> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    io::copy(entry, &mut File::create(path)?)?;
+    make_executable(path)
 }
 
 fn dir_size(path: &Path) -> u64 {
@@ -228,11 +319,7 @@ fn unzip(zip_path: &Path, target: &Path) -> io::Result<()> {
             fs::create_dir_all(&path)?;
             continue;
         }
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        io::copy(&mut entry, &mut File::create(&path)?)?;
-        make_executable(&path)?;
+        write_entry(&mut entry, &path)?;
     }
     Ok(())
 }
