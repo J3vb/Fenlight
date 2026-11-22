@@ -1,0 +1,72 @@
+name: Cut release
+
+# Actions tab, "Cut release", Run workflow: checks CI passed on the commit, creates the tag
+# and starts the Release workflow on it. No one needs to push a tag by hand (docs/RELEASING.md).
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: stable (everyone) or test (players on "Test builds")
+        type: choice
+        options: [stable, test]
+        default: test
+      version:
+        description: Version like 0.1.1 or 0.1.1-test.1. Empty = the next one for the channel
+        type: string
+        default: ""
+      ref:
+        description: Branch or commit to release
+        type: string
+        default: main
+
+concurrency:
+  group: cut-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  cut:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      checks: read
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pick the tag
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANNEL: ${{ inputs.channel }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          tag="$(gh api "repos/$GITHUB_REPOSITORY/tags" --paginate --jq '.[].name' \
+            | python3 tools/ci/release_tag.py pick --channel "$CHANNEL" --version "$VERSION")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "Tag: $tag" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check CI passed on the commit
+        id: commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REF: ${{ inputs.ref }}
+        run: |
+          sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/$REF" --jq .sha)"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$sha/check-runs" --paginate --jq '.check_runs[] | tojson' \
+            | python3 tools/ci/release_tag.py checks
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      # A tag made with the workflow token starts no workflow by itself, so start Release on it.
+      - name: Create the tag and start the Release workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$SHA" >/dev/null
+          gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG"
+          echo "Started Release for $TAG on $SHA" >> "$GITHUB_STEP_SUMMARY"

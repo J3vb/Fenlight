@@ -9,6 +9,7 @@ Plan and reasoning: https://claude.ai/artifact/HApjhDRXmDDVDYLezv4ozt
 | Push or PR | `ci.yml` | tests and lint (owned by the code quality setup) |
 | Merge to main | `build.yml` | Windows + Linux builds under the run's **Artifacts** (kept 3 days), server image `edge` |
 | Pull request (not docs-only) | `build.yml` | same export and smoke test, builds under **Artifacts**, no image |
+| Actions tab, "Cut release", **Run workflow** | `cut-release.yml` | checks CI, makes the tag, starts `release.yml` on it |
 | Tag `v1.2.3` | `release.yml` | GitHub Release with zips and notes, server image `1.2.3`, `1.2`, `latest` |
 | Actions tab, "Build", **Run workflow** | `build.yml` | builds of any branch, no image |
 
@@ -19,15 +20,23 @@ the server must stop cleanly before anything is uploaded.
 
 ## Cut a release
 
-1. Merge what you want into main and check the **Build** run is green.
-2. GitHub, **Releases**, **Draft a new release**, type a new tag like `v0.1.0`
-   on `main`, click **Generate release notes**, then **Publish**. (Or
-   `git tag v0.1.0 && git push origin v0.1.0` and the workflow writes the notes.)
-3. The **Release** workflow attaches the zips to that release (or creates it,
-   notes from the PR titles grouped by the `new`, `fix`, `balance`, `tech`
-   labels). About 10 minutes.
+1. Merge what you want into main.
+2. GitHub, **Actions**, **Cut release**, **Run workflow**. Pick the channel (`stable` or
+   `test`) and leave **version** empty for the next one (stable: next patch after the newest
+   stable tag, test: the next `-test.N` of that patch), or type one like `0.2.0`. A Claude
+   thread can start it too (the GitHub `actions_run_trigger` tool), so nobody has to push a tag.
+3. Cut release refuses a version that exists, is not newer, or does not fit the channel, and a
+   commit whose CI `test` check has not passed or has a failed check. Then it makes the tag
+   and starts **Release** on it, which builds, tests and publishes everything. About 10 minutes.
 
-Tags with a dash (`v0.2.0-rc.1`) become pre-releases and do not move `latest`.
+**Player notes:** put them in `docs/release-notes/v0.2.0.md` (named after the tag) on main
+before cutting. They go above the PR list GitHub writes from the `new`, `fix`, `balance`
+and `tech` labels.
+
+**Channel flags:** Release sets them from the tag every time, also when the release was made
+by hand in the GitHub UI: stable (`v1.2.3`) is a full release marked latest, test
+(`v1.2.3-test.1`) is a pre-release that never becomes latest. Pushing a tag by hand or
+publishing from the GitHub UI still works and gets the same files and flags.
 
 ## Channels (F-65)
 
@@ -45,7 +54,7 @@ Tags with a dash (`v0.2.0-rc.1`) become pre-releases and do not move `latest`.
   `-windows.zip`, `-linux.zip`, `-server.zip` (today `Fenlight-<version>-windows.zip`; before
   the rename they started `ExperimentUndead-`, and the launcher only reads the end); zip root
   holds `ExperimentUndead.exe` / `.x86_64` and its pck (file names kept through the rename); tags `vX.Y.Z` and `vX.Y.Z-test.N`; GitHub's `digest` field.
-- **Cut a test build:** tag `v0.1.0-test.1` on main and push it. Save version bumps go to
+- **Cut a test build:** run **Cut release** with channel `test`. Save version bumps go to
   test first. A bad release is fixed by releasing a newer one (roll forward), never by
   deleting the old one.
 - Main builds count up from the last **stable** tag (`stamp_version.sh` ignores test tags).
