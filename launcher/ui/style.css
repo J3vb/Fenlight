@@ -292,7 +292,7 @@ time { color: var(--muted); font-size: 12px; }
 .check input { accent-color: var(--green); margin-right: 8px; }
 
 /* Bottom bar: every part has a fixed or shrinkable width, so no text can push the bar out of
-   the window (tools/ci/launcher_layout.mjs checks it at each Windows display scale). */
+   the window (tools/ci/launcher_layout.cjs checks it at each Windows display scale). */
 .bar {
   grid-column: 2;
   display: flex;
@@ -369,13 +369,14 @@ input[type="number"] { min-width: 0; width: 100px; margin-left: 8px; }
 
 option { background: var(--fog); color: var(--text); }
 
-/* One line under the version picker, cut with "…"; the full text is in its tooltip. */
+/* Two lines at most under the version picker; the full text is in its tooltip. */
 #status {
+  display: -webkit-box;
   max-width: 100%;
   margin: 0;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   color: var(--muted);
   font-size: 14px;
   line-height: 1.3;

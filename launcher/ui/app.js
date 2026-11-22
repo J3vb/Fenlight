@@ -43,9 +43,10 @@ function gigabytes(bytes) {
 
 async function showDisk(busy) {
   const disk = await invoke("disk");
-  diskUsed.textContent = disk.installed ? gigabytes(disk.installed) : "Not installed";
   diskFree.textContent = `${gigabytes(disk.free)} free`;
+  // While installing, the progress event owns the used text and the bar.
   if (!busy) {
+    diskUsed.textContent = disk.installed ? gigabytes(disk.installed) : "Not installed";
     const total = disk.installed + disk.free;
     progressBar.value = total > 0 ? Math.max(1, Math.round((disk.installed * 100) / total)) : 0;
   }

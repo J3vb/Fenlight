@@ -41,6 +41,13 @@ const STATES = {
   checking: { play: "Checking", done: 100, cancel: true, status: "Downloading v0.1.3…", used: "100% · 2.2 GB of 2.2 GB", free: "1234.5 GB free" },
   install: { play: "Install", status: "v0.1.12 is ready to install.", used: "Not installed", free: "616.6 GB free" },
   retry: { play: "Retry", status: "Could not update to v0.1.12-test.3. Press Retry.", error: true, used: "919 MB", free: "616.6 GB free" },
+  failed: {
+    play: "Retry",
+    status: "Download failed: error sending request for url (https://github.com/J3vb/Fenlight/releases/download/v0.1.12/fenlight-windows.zip)",
+    error: true,
+    used: "919 MB",
+    free: "616.6 GB free",
+  },
   update: { play: "Update", status: "Checking for a launcher update…", used: "919 MB", free: "616.6 GB free" },
 };
 
