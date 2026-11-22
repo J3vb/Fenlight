@@ -1,5 +1,14 @@
 [
   {
+    "id": 4,
+    "date": "2026-11-21",
+    "kicker": "Release",
+    "title": "Fenlight 0.1.0",
+    "summary": "The first stable build: Legendaries, field abilities, frag grenades, Blackout rounds and a new HUD.",
+    "body": "Spend skill points on the Research screen, pick a field ability, and hunt for 14 Legendaries with traits of their own. Headgear, gloves, backpacks and boots now drop too. In Halcyon Labs the lights can go out, and Glower packs hunt in the dark. Stable keeps its own characters, so everyone starts fresh. Full notes are under Patches.",
+    "image": "kessel_dam.jpg"
+  },
+  {
     "id": 3,
     "date": "2026-11-20",
     "kicker": "Test build",
