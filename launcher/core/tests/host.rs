@@ -171,3 +171,39 @@ fn checking_running_keeps_the_exit_code() {
     }
     assert_eq!(host.poll(), Some(3), "the status poll did not swallow the update exit");
 }
+
+#[test]
+fn an_update_restart_keeps_the_old_log() {
+    let dir = common::temp_dir("host-log-kept");
+    let mut host = Host::new(dir.join("server"));
+    let exe = fake_server();
+    host.start(&exe, "0.1.1", 7790, 4).expect("started");
+    assert_eq!(host.tick(Some((&exe, "0.1.2"))), Tick::Draining("0.1.2".into()));
+    assert_eq!(
+        wait_for_tick(&mut host, Some((&exe, "0.1.2"))),
+        Tick::Restarted("0.1.2".into())
+    );
+    host.stop_and_wait(Duration::from_secs(10));
+    let log = std::fs::read_to_string(host.dir.join(LOG_FILE)).unwrap();
+    assert!(log.contains("--- Server v0.1.1 on port 7790 ---"), "{log}");
+    assert!(log.contains("--- Server v0.1.2 on port 7790 ---"), "{log}");
+}
+
+#[test]
+fn a_drain_file_that_cannot_be_written_is_tried_again_quietly() {
+    let dir = common::temp_dir("host-drain-blocked");
+    let mut host = Host::new(dir.join("server"));
+    let exe = fake_server();
+    host.start(&exe, "0.1.1", 7790, 4).expect("started");
+    std::fs::create_dir_all(host.drain_file()).unwrap();
+    for _ in 0..3 {
+        assert_eq!(
+            host.tick(Some((&exe, "0.1.2"))),
+            Tick::Running,
+            "no Draining (and no log line) while the write fails"
+        );
+    }
+    std::fs::remove_dir(host.drain_file()).unwrap();
+    assert_eq!(host.tick(Some((&exe, "0.1.2"))), Tick::Draining("0.1.2".into()));
+    host.stop_and_wait(Duration::from_secs(10));
+}
