@@ -26,13 +26,20 @@ pub struct HostStatus {
 
 #[tauri::command]
 pub fn host_status(launcher: State<'_, Launcher>) -> Result<HostStatus, String> {
-    let mut host = launcher.host.lock().map_err(|error| error.to_string())?;
-    let saved = launcher.settings.lock().map_err(|error| error.to_string())?;
+    host_state(&launcher)
+}
+
+/// Takes one lock at a time: `Launcher::installer` locks the host too, and locking it twice
+/// on the window's thread froze the launcher on start (v0.1.0).
+fn host_state(launcher: &Launcher) -> Result<HostStatus, String> {
+    let installed = launcher.installer().installed().into_iter().next();
+    let running = launcher.hosting();
+    let saved = launcher.settings.lock().map_err(|error| error.to_string())?.clone();
     Ok(HostStatus {
-        running: host.running(),
+        running,
         port: saved.port,
         max_players: saved.max_players,
-        installed: launcher.installer().installed().into_iter().next(),
+        installed,
     })
 }
 
@@ -154,4 +161,41 @@ fn install_newer(launcher: &Launcher) {
         Err(problem) => log::write(&launcher.data_dir, "warn", "install_failed", &problem),
     }
     launcher.busy.store(false, Ordering::Relaxed);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use launcher_core::host::{Host, DEFAULT_PORT};
+    use launcher_core::settings::Settings;
+    use std::sync::atomic::AtomicBool;
+    use std::sync::{mpsc, Arc, Mutex};
+
+    fn launcher() -> Launcher {
+        let data_dir = std::env::temp_dir().join(format!("fenlight-host-state-{}", std::process::id()));
+        Launcher {
+            settings: Mutex::new(Settings::default()),
+            api_url: String::new(),
+            releases: Mutex::new(None),
+            cancel: Arc::new(AtomicBool::new(false)),
+            busy: AtomicBool::new(false),
+            host: Mutex::new(Host::new(data_dir.join("server"))),
+            data_dir,
+        }
+    }
+
+    /// The Host panel asks for this every second from the window's thread: if it hangs, the
+    /// whole window goes "Not responding".
+    #[test]
+    fn host_status_answers_without_hanging() {
+        let launcher = launcher();
+        let (sender, receiver) = mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = sender.send(host_state(&launcher).map(|state| (state.running, state.port, state.installed)));
+        });
+        let answer = receiver
+            .recv_timeout(Duration::from_secs(5))
+            .expect("host_status hung: it locks a mutex it already holds");
+        assert_eq!(answer, Ok((None, DEFAULT_PORT, None)));
+    }
 }

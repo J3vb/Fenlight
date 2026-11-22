@@ -83,6 +83,21 @@ jobs:
           $menu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs"
           $link = Get-ChildItem $menu -Recurse -Filter "Fenlight Launcher*.lnk" | Select-Object -First 1
           if (-not $link) { throw "no Start menu shortcut in $menu" }
+          # Real start: v0.1.0 opened and froze ("Not responding") when its window thread
+          # deadlocked. Offline (refused releases API) so it never self-updates here.
+          $data = Join-Path $env:RUNNER_TEMP "launcher-data"
+          $launcher = Start-Process $exe -ArgumentList "--game-dir=$data", "--releases-api=http://127.0.0.1:9/" -PassThru
+          $deadline = (Get-Date).AddSeconds(60)
+          while ($launcher.MainWindowHandle -eq 0 -and (Get-Date) -lt $deadline) { Start-Sleep -Seconds 1; $launcher.Refresh() }
+          if ($launcher.MainWindowHandle -eq 0) { throw "the launcher opened no window within 60 s" }
+          foreach ($check in 1..10) {
+            Start-Sleep -Seconds 2
+            $launcher.Refresh()
+            if ($launcher.HasExited) { throw "the launcher quit on start (exit $($launcher.ExitCode))" }
+            if (-not $launcher.Responding) { throw "the launcher window is not responding" }
+          }
+          Stop-Process -Id $launcher.Id -Force
+          Start-Sleep -Seconds 2
           Start-Process (Join-Path $dir "uninstall.exe") -ArgumentList "/S" -Wait
           Start-Sleep -Seconds 5
           if (Test-Path $exe) { throw "launcher exe still there after uninstall" }
