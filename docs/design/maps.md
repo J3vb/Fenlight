@@ -136,7 +136,7 @@ Marrow Junction is the open map built for a full squad: a foggy rail yard with w
 
 What the build takes from it:
 - **Mood:** thick low fog, wet ground with puddles and dead leaves, razor-wire fences, a moon behind cloud. Grauwald sits on the hill behind the yard with red-lit masts, so the next map is always in view.
-- **Key props:** the hospital train (white cars, red stripe and red cross, rust, red tail lamps, steps up to each door), the last car glowing bio-green with a zombie shape inside, a steel signal gantry across the tracks with red signal lamps, a raised watch tower on the gantry, floodlight masts, a striped boom barrier, yellow-black concrete barriers, an army field tent with a biohazard tarp, laptops and a lamp, yellow hard cases and loose cables.
+- **Key props:** the hospital train (white cars, red stripe and the Cordon medical mark, no red cross, rust, red tail lamps, steps up to each door), the last car glowing bio-green with a zombie shape inside, a steel signal gantry across the tracks with red signal lamps, a raised watch tower on the gantry, floodlight masts, a striped boom barrier, yellow-black concrete barriers, an army field tent with a biohazard tarp, laptops and a lamp, yellow hard cases and loose cables.
 - **Lighting:** red signal lamps are the zone's accent, the green last car is the only bio-green, warm light only from the tent lamp and the car windows.
 
 Where the art differs from this doc:
