@@ -19,6 +19,9 @@ jobs:
   quality:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,12 +37,21 @@ jobs:
       - name: Test quality checks
         run: python -m unittest discover -s tools/ci -p "test_*.py"
 
-      - name: Whole-repo lint, format, complexity and changed-file tests-required check
+      - name: Whole-repo lint, format, complexity, tests-required and review-recorded check
         env:
           NO_TESTS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'no-tests-needed') }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
         run: |
           args="origin/${{ github.base_ref }}"
           if [ "$NO_TESTS_LABEL" = "true" ]; then args="$args --no-tests-label"; fi
+          # Read the PR live, so a re-run sees an edited body. Drafts skip the review rule.
+          draft=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)
+          if [ "$draft" != "true" ] && [ "$draft" != "false" ]; then echo "Could not read the PR draft state"; exit 1; fi
+          if [ "$draft" = "false" ]; then
+            gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$RUNNER_TEMP/pr_body.md"
+            args="$args --pr-body-file $RUNNER_TEMP/pr_body.md"
+          fi
           python tools/ci/check_pr.py $args
 
       - name: Structure rules

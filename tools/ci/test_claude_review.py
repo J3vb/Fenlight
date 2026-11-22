@@ -196,6 +196,11 @@ class ChunkTests(unittest.TestCase):
         self.assertFalse(cr.is_reviewable("addons/gut/gut.gd"))
         self.assertFalse(cr.is_reviewable("content/guns/rifle.tres"))
 
+    def test_launcher_rust_and_js_are_reviewed_with_game_code(self):
+        self.assertTrue(cr.is_reviewable("launcher/core/src/install.rs"))
+        self.assertTrue(cr.is_reviewable("launcher/ui/app.js"))
+        self.assertLess(cr.priority_of("launcher/src-tauri/src/main.rs"), cr.priority_of("tests/unit/t.gd"))
+
     def test_chunks_respect_size_and_priority(self):
         files = {"tests/unit/t.gd": "x\n", "core/a.gd": "y\n" * 10, "core/b.gd": "z\n" * 10}
         size = len(cr.file_block("core/a.gd", files["core/a.gd"])) + 5
