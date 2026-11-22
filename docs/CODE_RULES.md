@@ -272,19 +272,20 @@ they can take in the catalogue by hand.
 - Good: `Log.warn(&"net", &"join_failed", {...})` with a `net.join_failed` row.
 - Bad: a new `Log.warn` event with no row in `docs/LOGGING.md`.
 
-## 21. model-children-editable
+## 21. instance-children-editable
 
-A scene that adds nodes inside an instanced model (`.glb` and other imported
-models), such as a muzzle flash under `Rifle/Receiver/Muzzle`, must mark that
-model `[editable path="Rifle"]`. Without it the editor runs the scene fine but
-the exported game drops those nodes: v0.1.2 shipped with a black MR-28 scope,
-no AR-17 red dot and no muzzle flashes. Nodes added straight under the model's
-root and nodes inside instanced `.tscn` scenes are not affected.
+A scene that adds or changes nodes inside an instanced scene or model, such as
+a muzzle flash under `Rifle/Receiver/Muzzle` of an imported `.glb`, or a
+changed property on the model's `Receiver`, must mark that instance
+`[editable path="Rifle"]`. Without it the editor runs the scene fine but the
+exported game drops those nodes and changes: v0.1.2 shipped with a black MR-28
+scope, no AR-17 red dot and no muzzle flashes. Nodes added straight under the
+instance's root are kept.
 
 - Good: `[editable path="Talon"]` at the end of `talon_viewmodel.tscn`.
 - Bad: `[node name="ScopeLens" parent="Talon/Receiver/ScopeLensMount"]` with no
   `[editable path="Talon"]` line.
 
 Fix: add the line at the end of the scene, or open the scene in the editor and
-tick Editable Children on the model. `tools/ci/export_content_check.gd` also
+tick Editable Children on the instance. `tools/ci/export_content_check.gd` also
 checks the exported build keeps every gun's flash, scope lens and red dot.

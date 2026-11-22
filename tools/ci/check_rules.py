@@ -88,9 +88,7 @@ LOG_WARN = re.compile(r"""Log\.warn\(\s*&?["'](\w+)["']\s*,\s*&?["'](\w+)["']"""
 SCENE_NODE = re.compile(
     r'^\[node name="([^"]+)"(?:[^\]]*?parent="([^"]*)")?(?:[^\]]*?instance=ExtResource\("([^"]+)"\))?'
 )
-SCENE_EXT = re.compile(r'^\[ext_resource [^\]]*path="([^"]+)"[^\]]*id="([^"]+)"')
 SCENE_EDITABLE = re.compile(r'^\[editable path="([^"]+)"\]')
-MODEL_FILES = (".glb", ".gltf", ".blend", ".fbx", ".obj", ".dae")
 STRINGS = re.compile(r""""(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|#.*""")
 
 
@@ -502,33 +500,36 @@ def check_decisions_short(root: Path) -> list[str]:
     return errors
 
 
-def model_instances(lines: list[str]) -> tuple[dict, list[tuple[int, str]], set]:
-    models = {match[2] for line in lines if (match := SCENE_EXT.match(line)) and match[1].endswith(MODEL_FILES)}
-    instances, parents, editable = {}, [], set()
+def scene_nodes(lines: list[str]) -> tuple[list[tuple[int, str, str, bool]], set, set]:
+    """Nodes as (line, path, parent, declared), the instanced node paths and the editable paths."""
+    nodes, instances, editable = [], set(), set()
     for number, line in enumerate(lines, 1):
         if match := SCENE_EDITABLE.match(line):
             editable.add(match[1])
-        if not (match := SCENE_NODE.match(line)) or match[2] in (None, "."):
-            if match and match[2] == "." and match[3] in models:
-                instances[match[1]] = number
+        if not (match := SCENE_NODE.match(line)) or match[2] is None:
             continue
-        if match[3] in models:
-            instances[f"{match[2]}/{match[1]}"] = number
-        parents.append((number, match[2]))
-    return instances, parents, editable
+        path = match[1] if match[2] == "." else f"{match[2]}/{match[1]}"
+        if match[3]:
+            instances.add(path)
+        nodes.append((number, path, match[2], bool(match[3]) or " type=" in line))
+    return nodes, instances, editable
 
 
-def check_model_children_editable(root: Path) -> list[str]:
+def check_instance_children_editable(root: Path) -> list[str]:
     errors = []
     for path, lines in text_files(root, suffixes=(".tscn",)):
-        instances, parents, editable = model_instances(lines)
+        nodes, instances, editable = scene_nodes(lines)
+        declared = {node_path for _, node_path, _, own in nodes if own}
         flagged = set()
-        for number, parent in parents:
-            for instance in instances:
-                if parent.startswith(instance + "/") and instance not in editable | flagged:
-                    flagged.add(instance)
-                    message = f'node inside model "{instance}" needs [editable path="{instance}"] or export drops it'
-                    errors.append(problem(path, number, "model-children-editable", message))
+        for number, _, parent, own in nodes:
+            owner = parent
+            while owner not in declared | {"."} and "/" in owner:
+                owner = owner.rsplit("/", 1)[0]
+            inside = owner in instances and (owner != parent or not own)
+            if inside and owner not in editable | flagged:
+                flagged.add(owner)
+                message = f'node inside instance "{owner}" needs [editable path="{owner}"] or export drops it'
+                errors.append(problem(path, number, "instance-children-editable", message))
     return errors
 
 
@@ -553,7 +554,7 @@ RULES = [
     check_rpc_rules,
     check_log_catalogue,
     check_decisions_short,
-    check_model_children_editable,
+    check_instance_children_editable,
 ]
 
 
