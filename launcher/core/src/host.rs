@@ -4,7 +4,8 @@
 
 use crate::version;
 use std::cmp::Ordering;
-use std::fs::{self, File};
+use std::fs::{self, OpenOptions};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
@@ -78,7 +79,8 @@ impl Host {
         self.dir.join(STOP_FILE)
     }
 
-    /// Starts `exe` (the game of `version`) as a server, its output going to `server.log`.
+    /// Starts `exe` (the game of `version`) as a server, its output added to `server.log`
+    /// so the log of the run before an update restart is kept.
     pub fn start(&mut self, exe: &Path, version: &str, port: u16, max_players: u8) -> Result<(), String> {
         if self.running().is_some() {
             return Err("A server is already running.".into());
@@ -86,7 +88,12 @@ impl Host {
         fs::create_dir_all(&self.dir).map_err(|error| error.to_string())?;
         let _ = fs::remove_file(self.stop_file());
         let _ = fs::remove_file(self.drain_file());
-        let log = File::create(self.dir.join(LOG_FILE)).map_err(|error| error.to_string())?;
+        let mut log = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(self.dir.join(LOG_FILE))
+            .map_err(|error| error.to_string())?;
+        let _ = writeln!(log, "--- Server v{version} on port {port} ---");
         let mut command = Command::new(exe);
         command
             .args(server_args(port, max_players, &self.stop_file(), &self.drain_file()))
@@ -161,8 +168,9 @@ impl Host {
 
 impl Host {
     /// Called every second with the newest installed game. A running server older than it
-    /// gets the drain file once; a server that then quits with `EXIT_UPDATE` starts again on
-    /// it with the same port and player limit. Any other exit is left alone.
+    /// gets the drain file once (tried again next tick if it could not be written); a server
+    /// that then quits with `EXIT_UPDATE` starts again on it with the same port and player
+    /// limit. Any other exit is left alone.
     pub fn tick(&mut self, newest: Option<(&Path, &str)>) -> Tick {
         if let Some(code) = self.poll() {
             return match newest {
@@ -180,7 +188,10 @@ impl Host {
         }
         match newest {
             Some((_, version)) if !self.draining && version::compare(version, &self.version) == Ordering::Greater => {
-                self.draining = fs::write(self.drain_file(), version).is_ok();
+                if fs::write(self.drain_file(), version).is_err() {
+                    return Tick::Running;
+                }
+                self.draining = true;
                 Tick::Draining(version.to_string())
             }
             _ => Tick::Running,
