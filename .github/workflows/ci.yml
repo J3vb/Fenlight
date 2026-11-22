@@ -46,7 +46,9 @@ jobs:
           args="origin/${{ github.base_ref }}"
           if [ "$NO_TESTS_LABEL" = "true" ]; then args="$args --no-tests-label"; fi
           # Read the PR live, so a re-run sees an edited body. Drafts skip the review rule.
-          if [ "$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = "false" ]; then
+          draft=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)
+          if [ "$draft" != "true" ] && [ "$draft" != "false" ]; then echo "Could not read the PR draft state"; exit 1; fi
+          if [ "$draft" = "false" ]; then
             gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json body --jq .body > "$RUNNER_TEMP/pr_body.md"
             args="$args --pr-body-file $RUNNER_TEMP/pr_body.md"
           fi

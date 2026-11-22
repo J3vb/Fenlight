@@ -26,9 +26,9 @@ REVIEW_LINE_RE = re.compile(r"^Review:[ \t]*(\S.*)$", re.MULTILINE)
 HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
 
-def changed_files(base: str) -> list[str]:
+def changed_files(base: str, diff_filter: str = "ACMR") -> list[str]:
     out = subprocess.run(
-        ["git", "diff", "--name-only", "--diff-filter=ACMR", f"{base}...HEAD"],
+        ["git", "diff", "--name-only", f"--diff-filter={diff_filter}", f"{base}...HEAD"],
         check=True,
         capture_output=True,
         text=True,
@@ -150,7 +150,7 @@ def tests_required(files: list[str], skip_tests_rule: bool) -> bool:
 
 
 def needs_review(files: list[str]) -> list[str]:
-    return [f for f in files if not (f.endswith(".md") or f.startswith(REVIEW_EXEMPT_DIRS))]
+    return [f for f in files if f.endswith(".gdshader") or not (f.endswith(".md") or f.startswith(REVIEW_EXEMPT_DIRS))]
 
 
 def review_recorded(files: list[str], body: str | None) -> bool:
@@ -158,13 +158,14 @@ def review_recorded(files: list[str], body: str | None) -> bool:
     code = needs_review(files)
     if body is None or not code:
         return True
-    match = REVIEW_LINE_RE.search(HTML_COMMENT_RE.sub("", body))
-    if match and not match.group(1).strip().lower().startswith("skipped"):
+    matches = REVIEW_LINE_RE.findall(HTML_COMMENT_RE.sub("", body))
+    if matches and not matches[-1].strip().lower().startswith("skipped"):
         return True
     print("This PR changes code but its body has no filled 'Review:' line (or says skipped):")
     for path in code[:10]:
         print("  " + path)
-    print("Run the pre-merge-review skill, fill the Review section of the PR, then re-run this job.")
+    print("Run the pre-merge-review skill and fill the Review section of the PR.")
+    print("Editing the body does not start CI: use 'Re-run jobs' on this run or push the next commit.")
     return False
 
 
@@ -180,7 +181,7 @@ def main() -> int:
     ok = check_gdscript(tracked_files(".gd"))
     ok &= check_python(tracked_files(".py"))
     ok &= tests_required(files, "--no-tests-label" in sys.argv)
-    ok &= review_recorded(files, pr_body())
+    ok &= review_recorded(files + changed_files(sys.argv[1], "D"), pr_body())
     ok &= run([sys.executable, str(Path(__file__).with_name("check_rules.py"))])
     ok &= run([sys.executable, str(Path(__file__).with_name("check_plans.py"))])
     ok &= run([sys.executable, str(Path(__file__).with_name("check_saved_ids.py")), sys.argv[1]])

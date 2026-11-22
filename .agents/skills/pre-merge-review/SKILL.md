@@ -14,23 +14,26 @@ the code does. You run that reviewer; you do not review your own work.
 1. Local checks pass and the draft PR is pushed.
 2. Run this skill. Fix what it finds. Run the local checks again.
 3. Fill the PR's **Review** section, then mark the PR ready. CI checks the
-   `Review:` line on a ready PR.
+   `Review:` line on a ready PR. Editing the body alone does not start CI:
+   fix it before marking ready, or re-run the job / push the next commit.
 4. Later pushes: review again only when the new commits change more than
    50 lines of non-test code or a code file the reviewer did not see. Then
    review only `git diff <reviewed-sha>..HEAD`.
 
 **Skip** when every changed file is a `.md` file or is under `docs/`,
-`assets/` or `launcher/news/`. Write `Review: skipped, docs only` (or
+`assets/` (except `.gdshader`) or `launcher/news/`. Write `Review: skipped, docs only` (or
 `assets only`). There is no "too small" skip for code: the worst launcher
 bugs were small diffs.
 
 ## Pick the checklists
 
-Run `git diff --name-only origin/main...HEAD` and take every row that matches:
+Run `git fetch origin main` first (a stale `origin/main` pulls in other
+PRs' files), then `git diff --name-only origin/main...HEAD`, and take every
+row that matches:
 
 | Changed | Checklist |
 |---|---|
-| `core/`, `systems/`, `levels/`, `content/`, `tests/` | `checklists/game.md` |
+| `core/`, `systems/`, `levels/`, `content/`, `tests/`, `.gdshader` | `checklists/game.md` |
 | The diff has `@rpc`, `.rpc(`, `rpc_id`, `multiplayer.`, `Net.`, a MultiplayerSpawner or Synchronizer, or touches `systems/net/` | also `checklists/coop.md` |
 | `launcher/core/`, `launcher/src-tauri/` | `checklists/launcher-rust.md` |
 | `launcher/ui/` | `checklists/launcher-ui.md` (and `launcher-rust.md` if a command or event changed) |

@@ -119,6 +119,18 @@ class ReviewRecordedTests(unittest.TestCase):
         body = self.TEMPLATE.replace("Review: <!--", "Review: fresh subagent at abc123; checklists: game <!--")
         self.assertTrue(self.check(["systems/x/y.gd", "docs/a.md"], body))
 
+    def test_shaders_under_assets_need_review(self):
+        self.assertFalse(self.check(["assets/materials/gun_finish.gdshader"], ""))
+
+    def test_last_review_line_wins(self):
+        self.assertFalse(self.check(["core/net.gd"], "Review: see below\n### Review\nReview: skipped, docs only\n"))
+
+    def test_deleted_files_can_be_listed_for_the_review_rule(self):
+        done = subprocess.CompletedProcess([], 0, stdout="systems/net/gone.gd\n")
+        with patch.object(check_pr.subprocess, "run", return_value=done) as run:
+            self.assertEqual(check_pr.changed_files("origin/main", "D"), ["systems/net/gone.gd"])
+        self.assertIn("--diff-filter=D", run.call_args.args[0])
+
     def test_heading_alone_does_not_count(self):
         self.assertFalse(self.check(["core/net.gd"], "### Review\nLooks fine.\n"))
 
