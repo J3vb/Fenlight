@@ -89,3 +89,15 @@ fn command_line_test_hooks() {
         "http://127.0.0.1:9/r"
     );
 }
+
+#[test]
+fn saving_leaves_no_temp_file_and_a_reset_is_logged() {
+    let dir = common::temp_dir("settings-save");
+    Settings::default().save(&dir).unwrap();
+    assert!(dir.join("launcher.json").is_file());
+    assert!(!dir.join("launcher.json.tmp").exists());
+    std::fs::write(dir.join("launcher.json"), r#"{"channel": "dev"}"#).unwrap();
+    let _ = Settings::load(&dir);
+    let log = std::fs::read_to_string(dir.join("launcher.log")).unwrap_or_default();
+    assert!(log.contains("settings_reset"), "{log}");
+}

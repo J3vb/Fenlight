@@ -1,4 +1,4 @@
-use launcher_core::feed::{auto_update, find, is_newer, newest, patches, Channel, LINUX_SUFFIX, WINDOWS_SUFFIX};
+use launcher_core::feed::{self, auto_update, find, is_newer, newest, patches, Channel, LINUX_SUFFIX, WINDOWS_SUFFIX};
 use serde_json::Value;
 
 mod common;
@@ -90,4 +90,22 @@ fn patches_list_the_channel_newest_first() {
     assert_eq!(stable[0].notes, "Stable notes");
     assert_eq!(stable[1].date, "");
     assert_eq!(patches(&releases(), Channel::Test)[0].version, "0.2.0-test.1");
+}
+
+#[test]
+fn stable_plays_only_stable_installs() {
+    let installed: Vec<String> = ["0.2.0-test.3", "0.1.5", "0.1.4"]
+        .iter()
+        .map(|v| v.to_string())
+        .collect();
+    assert_eq!(feed::installed_on(&installed, Channel::Stable), vec!["0.1.5", "0.1.4"]);
+    assert_eq!(feed::installed_on(&installed, Channel::Test), installed);
+}
+
+#[test]
+fn fetch_asks_github_for_a_full_page() {
+    let (url, seen) = common::serve_recording(b"[]".to_vec());
+    assert_eq!(feed::fetch(&url), Ok(Vec::new()));
+    let first = seen.lock().unwrap()[0].clone();
+    assert!(first.contains("per_page=100"), "{first}");
 }

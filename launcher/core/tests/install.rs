@@ -1,6 +1,7 @@
 use launcher_core::feed::Release;
 use launcher_core::install::{game_exe_name, sha256_file, space_needed, Installer, KEEP};
 use std::sync::atomic::AtomicBool;
+use std::time::{Duration, Instant};
 
 mod common;
 
@@ -221,4 +222,66 @@ fn repair_with_a_bad_download_touches_nothing() {
 fn install_needs_room_for_the_zip_and_the_game() {
     assert_eq!(space_needed(1_000_000_000), 2_500_000_000);
     assert_eq!(space_needed(0), 0);
+}
+
+#[test]
+fn a_stalled_download_fails_instead_of_hanging() {
+    let dir = common::temp_dir("stall");
+    let mut installer = Installer::new(dir.join("versions"));
+    installer.stall_timeout = Duration::from_millis(500);
+    let start = Instant::now();
+    let problem = installer
+        .install(
+            &release(common::serve_stalling(100_000, 1000), "00".into(), "0.1.1"),
+            &AtomicBool::new(false),
+            &mut |_, _| {},
+        )
+        .unwrap_err();
+    assert!(
+        start.elapsed() < Duration::from_secs(10),
+        "hung for {:?}",
+        start.elapsed()
+    );
+    assert!(problem.contains("Check your connection"), "{problem}");
+    assert!(installer.installed().is_empty());
+}
+
+#[test]
+fn leftovers_of_a_closed_launcher_are_cleaned() {
+    let dir = common::temp_dir("leftovers");
+    let versions = dir.join("versions");
+    std::fs::create_dir_all(versions.join(".downloads")).unwrap();
+    std::fs::write(versions.join(".downloads/0.1.2.zip"), b"half a zip").unwrap();
+    std::fs::create_dir_all(versions.join("0.1.2.tmp/sub")).unwrap();
+    std::fs::create_dir_all(versions.join("0.1.1")).unwrap();
+    std::fs::write(versions.join("0.1.1").join(game_exe_name()), b"game").unwrap();
+    let installer = Installer::new(versions.clone());
+    installer.clean_leftovers();
+    assert!(!versions.join(".downloads").exists());
+    assert!(!versions.join("0.1.2.tmp").exists());
+    assert!(versions.join("0.1.1").join(game_exe_name()).is_file(), "installs stay");
+    Installer::new(dir.join("missing")).clean_leftovers();
+}
+
+#[test]
+fn installing_an_older_stable_build_keeps_it_next_to_newer_test_builds() {
+    let dir = common::temp_dir("stable-after-test");
+    let installer = Installer::new(dir.join("versions"));
+    for version in ["0.2.0-test.3", "0.2.0-test.4"] {
+        std::fs::create_dir_all(installer.versions_dir.join(version)).unwrap();
+    }
+    let zip = common::game_zip(game_exe_name());
+    let digest = digest_of(&zip, &dir);
+    installer
+        .install(
+            &release(common::serve(zip, None), digest, "0.1.5"),
+            &AtomicBool::new(false),
+            &mut |_, _| {},
+        )
+        .expect("installed");
+    assert!(
+        installer.installed().contains(&"0.1.5".to_string()),
+        "the stable build just installed was pruned: {:?}",
+        installer.installed()
+    );
 }

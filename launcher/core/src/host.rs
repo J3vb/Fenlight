@@ -56,6 +56,9 @@ pub struct Host {
     max_players: u8,
     draining: bool,
     exit: Option<i32>,
+    /// Windows ends the server when the launcher ends, even when it crashes or is killed.
+    #[cfg(windows)]
+    job: Option<job::KillOnClose>,
 }
 
 impl Host {
@@ -68,6 +71,8 @@ impl Host {
             max_players: MAX_PLAYERS,
             draining: false,
             exit: None,
+            #[cfg(windows)]
+            job: job::KillOnClose::new(),
         }
     }
 
@@ -110,6 +115,10 @@ impl Host {
         let child = command
             .spawn()
             .map_err(|error| format!("Could not start the server: {error}"))?;
+        #[cfg(windows)]
+        if let Some(job) = &self.job {
+            job.add(&child);
+        }
         self.child = Some(child);
         self.version = version.to_string();
         self.port = port;
@@ -195,6 +204,111 @@ impl Host {
                 Tick::Draining(version.to_string())
             }
             _ => Tick::Running,
+        }
+    }
+}
+
+/// Ends the server when the `Host` is dropped. The launcher's managed state is not dropped on
+/// exit, so in the app the Windows job object below is what ends a server whose launcher
+/// crashed, was killed or restarted for an update.
+impl Drop for Host {
+    fn drop(&mut self) {
+        if let Some(child) = self.child.as_mut() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
+}
+
+#[cfg(windows)]
+mod job {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+    use windows_sys::Win32::System::JobObjects::{
+        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation, SetInformationJobObject,
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+    };
+
+    /// A Windows job object that ends every process in it when its last handle closes, which
+    /// Windows does for the launcher however it ends.
+    pub struct KillOnClose(HANDLE);
+
+    // The handle is only used through `&self`/`Drop`, and job handles work from any thread.
+    unsafe impl Send for KillOnClose {}
+
+    impl KillOnClose {
+        pub fn new() -> Option<Self> {
+            // SAFETY: plain Win32 calls; the handle is checked and closed on every path.
+            unsafe {
+                let handle = CreateJobObjectW(std::ptr::null(), std::ptr::null());
+                if handle.is_null() {
+                    return None;
+                }
+                let mut info: JOBOBJECT_EXTENDED_LIMIT_INFORMATION = std::mem::zeroed();
+                info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+                let set = SetInformationJobObject(
+                    handle,
+                    JobObjectExtendedLimitInformation,
+                    std::ptr::from_ref(&info).cast(),
+                    std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
+                );
+                if set == 0 {
+                    CloseHandle(handle);
+                    return None;
+                }
+                Some(Self(handle))
+            }
+        }
+
+        pub fn add(&self, child: &std::process::Child) -> bool {
+            // SAFETY: both handles are valid while `self` and `child` live.
+            unsafe { AssignProcessToJobObject(self.0, child.as_raw_handle() as HANDLE) != 0 }
+        }
+    }
+
+    impl Drop for KillOnClose {
+        fn drop(&mut self) {
+            // SAFETY: the handle came from CreateJobObjectW and is closed once.
+            unsafe {
+                CloseHandle(self.0);
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::KillOnClose;
+        use std::time::Duration;
+
+        /// The crash case: only the job handle closes (as Windows does for a dead launcher),
+        /// nobody calls kill, and the server still ends.
+        #[test]
+        fn closing_the_job_ends_the_server() {
+            let deps = std::env::current_exe().unwrap();
+            let exe = deps
+                .parent()
+                .unwrap()
+                .parent()
+                .unwrap()
+                .join("examples")
+                .join("fake_server.exe");
+            let dir = std::env::temp_dir().join(format!("eu-launcher-job-{}", std::process::id()));
+            std::fs::create_dir_all(&dir).unwrap();
+            let mut child = std::process::Command::new(exe)
+                .arg(format!("--stop-file={}", dir.join("stop").display()))
+                .arg(format!("--drain-file={}", dir.join("drain").display()))
+                .spawn()
+                .expect("fake server");
+            let job = KillOnClose::new().expect("job object");
+            assert!(job.add(&child));
+            std::thread::sleep(Duration::from_millis(200));
+            assert!(matches!(child.try_wait(), Ok(None)), "running before the job closes");
+            drop(job);
+            std::thread::sleep(Duration::from_millis(500));
+            assert!(
+                matches!(child.try_wait(), Ok(Some(_))),
+                "the job did not end the server"
+            );
         }
     }
 }

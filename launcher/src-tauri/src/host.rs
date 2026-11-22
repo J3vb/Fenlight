@@ -32,7 +32,7 @@ pub fn host_status(launcher: State<'_, Launcher>) -> Result<HostStatus, String> 
 /// Takes one lock at a time: `Launcher::installer` locks the host too, and locking it twice
 /// on the window's thread froze the launcher on start (v0.1.0).
 fn host_state(launcher: &Launcher) -> Result<HostStatus, String> {
-    let installed = launcher.installer().installed().into_iter().next();
+    let installed = launcher.installed().into_iter().next();
     let running = launcher.hosting();
     let saved = launcher.settings.lock().map_err(|error| error.to_string())?.clone();
     Ok(HostStatus {
@@ -53,7 +53,7 @@ pub fn host_start(launcher: State<'_, Launcher>, port: u16, max_players: u8) -> 
         saved.save(&launcher.data_dir)?;
     }
     let installer = launcher.installer();
-    let version = installer
+    let version = launcher
         .installed()
         .into_iter()
         .next()
@@ -115,7 +115,7 @@ pub fn watch(app: AppHandle) {
         std::thread::sleep(Duration::from_secs(1));
         let launcher = app.state::<Launcher>();
         let installer = launcher.installer();
-        let newest = installer.installed().into_iter().next();
+        let newest = launcher.installed().into_iter().next();
         let exe = newest.as_deref().map(|version| installer.exe_path(version));
         let tick = match launcher.host.lock() {
             Ok(mut host) => host.tick(exe.as_deref().zip(newest.as_deref())),
@@ -163,7 +163,7 @@ fn install_newer(app: &AppHandle) {
     let Some(release) = launcher.newest() else {
         return;
     };
-    if !feed::is_newer(&release.version, &installer.installed()) || launcher.busy.swap(true, Ordering::Relaxed) {
+    if !feed::is_newer(&release.version, &launcher.installed()) || launcher.busy.swap(true, Ordering::Relaxed) {
         return;
     }
     launcher.cancel.store(false, Ordering::Relaxed);
@@ -208,6 +208,7 @@ mod tests {
             releases: Mutex::new(None),
             cancel: Arc::new(AtomicBool::new(false)),
             busy: AtomicBool::new(false),
+            game: Mutex::new(None),
             host: Mutex::new(Host::new(data_dir.join("server"))),
             data_dir,
         }
