@@ -101,6 +101,7 @@ Each says when to fix it.
 
 Agent picks the person may change.
 
+- **Early drops:** zombies drop loot at 5% in rounds 1-5 (then the 1.5% + 0.1%/round curve) and power-ups at 5% a kill, not 2.5%, so a solo run sees ~3 items and ~3 power-ups through round 5. Provisional, needs a play-test. [game-design](design/game-design.md)
 - **EGM plugin:** vendored at `.agents/plugins/egm/` and enabled per machine by the session hook (local settings, no machine path committed). The Codex repo marketplace source path is an agent pick, not yet tried in Codex. [CREDITS](CREDITS.md)
 - **Gun feel:** falloff ranges, spread, recoil and empty reloads not in `roster.csv` (Kestrel, Talon, vault batch A1, Bastion, batch B rifles, Wren, Siphon, Cryo Lance, Synapse). Talon head x3.0 and Atlas Auto's strong DPS wait for play-tests.
 - **Siphon:** 10 m/s orb, 3 s well, at most 12 zombies, 6 m pull, two live wells per player, Vault weight 0.05.

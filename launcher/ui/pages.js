@@ -136,11 +136,9 @@
   async function run(command, done) {
     try {
       await invoke(command);
-      statusLine.textContent = done;
-      statusLine.className = "ok";
+      showStatus(done, "ok");
     } catch (problem) {
-      statusLine.textContent = String(problem);
-      statusLine.className = "error";
+      showStatus(String(problem), "error");
     }
     show();
   }

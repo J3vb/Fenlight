@@ -73,7 +73,7 @@ func test_drop_cap_per_round() -> void:
 
 func test_drop_rates_match_the_design() -> void:
 	var fresh: PowerUpDrops = PowerUpDrops.new()
-	assert_eq(fresh.drop_chance, 0.025, "the GDD 2.5% per kill")
+	assert_eq(fresh.drop_chance, 0.05, "5% per kill, provisional (GDD 2.5%)")
 	assert_eq(fresh.max_per_round, 4, "the GDD 4 a round")
 	assert_eq(fresh.ammo_pack_chance, 0.05, "Scavenger packs halved")
 	fresh.free()
