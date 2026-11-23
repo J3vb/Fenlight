@@ -10,9 +10,14 @@ extends Node3D
 
 const AFTER_POWER: StringName = &"after_power"
 const BEFORE_POWER: StringName = &"before_power"
+const MAINS_LIGHT: StringName = &"mains_light"
+const EMERGENCY_LIGHT: StringName = &"emergency_light"
 const MONITOR_SCREEN: Material = preload("res://systems/effects/monitor_screen.tres")
 
 var powered: bool = false
+var _blackout: bool = false
+var _mains_lights: Array[Node3D] = []
+var _emergency_lights: Array[Node3D] = []
 var _after: Array[Node3D] = []
 var _before: Array[Node3D] = []
 var _screens: Array[GeometryInstance3D] = []
@@ -22,12 +27,18 @@ var _before_sounds: Array[AudioStreamPlayer3D] = []
 
 func _ready() -> void:
 	for node: Node in find_children("*", "Node3D", true, false):
-		if node.is_in_group(AFTER_POWER):
+		if node.is_in_group(MAINS_LIGHT):
+			_mains_lights.append(node as Node3D)
+		elif node.is_in_group(EMERGENCY_LIGHT):
+			_emergency_lights.append(node as Node3D)
+		elif node.is_in_group(AFTER_POWER):
 			_after.append(node as Node3D)
 			_collect_sounds(node, _after_sounds)
 		elif node.is_in_group(BEFORE_POWER):
 			_before.append(node as Node3D)
 			_collect_sounds(node, _before_sounds)
+	Events.blackout_started.connect(_set_blackout.bind(true).unbind(1))
+	Events.blackout_ended.connect(_set_blackout.bind(false).unbind(1))
 	var level: Level = get_parent() as Level
 	var scan_root: Node = self
 	if level:
@@ -40,6 +51,7 @@ func _ready() -> void:
 
 func set_powered(on: bool) -> void:
 	powered = on
+	_refresh_lights()
 	for node: Node3D in _after:
 		node.visible = on
 	for node: Node3D in _before:
@@ -50,6 +62,18 @@ func set_powered(on: bool) -> void:
 		sound.playing = not on
 	for screen: GeometryInstance3D in _screens:
 		screen.set_instance_shader_parameter(&"powered", 1.0 if on else 0.0)
+
+
+func _set_blackout(dark: bool) -> void:
+	_blackout = dark
+	_refresh_lights()
+
+
+func _refresh_lights() -> void:
+	for light: Node3D in _mains_lights:
+		light.visible = powered and not _blackout
+	for light: Node3D in _emergency_lights:
+		light.visible = not _blackout
 
 
 func screens() -> Array[GeometryInstance3D]:

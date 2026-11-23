@@ -138,10 +138,10 @@ func test_atmosphere_is_decoration_under_an_atmosphere_root() -> void:
 	scene.free()
 
 
-func test_large_vapor_particles_have_soft_textured_edges() -> void:
+func test_airborne_dust_steam_and_smoke_have_soft_textured_edges() -> void:
 	var scene: Node = (load(ATMOSPHERE) as PackedScene).instantiate()
 	autofree(scene)
-	for path: String in ["Steam/CoolantTunnel", "TruckFire/Smoke"]:
+	for path: String in ["Dust/MainCorridor", "Steam/CoolantTunnel", "TruckFire/Smoke"]:
 		var particles: GPUParticles3D = scene.get_node(path) as GPUParticles3D
 		var material: StandardMaterial3D = (particles.draw_pass_1 as QuadMesh).material as StandardMaterial3D
 		assert_eq(material.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA, path)
@@ -247,3 +247,24 @@ func test_small_life_fan_pa_and_papers() -> void:
 	var papers: GPUParticles3D = scene.get_node("SmallLife/LabsPapers") as GPUParticles3D
 	assert_lte(papers.amount, 8, "a few papers, not a storm")
 	scene.free()
+
+
+func test_room_work_lights_follow_level_power_and_the_ramp_keeps_emergency_light() -> void:
+	var level: Level = (load(MAP) as PackedScene).instantiate() as Level
+	add_child_autofree(level)
+	var dressing: Node = level.get_node("Atmosphere/RoomDressing")
+	var task_lens: Node3D = dressing.get_node("GeneratorHall/WorkLens") as Node3D
+	var work_light: Light3D = dressing.get_node("GeneratorHall/ServicePool") as Light3D
+	var emergency: Light3D = dressing.get_node("ContainmentRamp/EmergencyPool") as Light3D
+	assert_false(task_lens.is_visible_in_tree(), "portable reflector is dark before power")
+	assert_false(work_light.is_visible_in_tree(), "no light from the unpowered work lamp")
+	assert_true(emergency.is_visible_in_tree(), "the sloped route has emergency lighting")
+	Events.blackout_started.emit(6)
+	level.turn_power_on()
+	assert_false(task_lens.is_visible_in_tree(), "powering up during a Blackout keeps work lamps dark")
+	assert_false(work_light.is_visible_in_tree(), "the repair goes dark in a Blackout")
+	assert_false(emergency.is_visible_in_tree(), "Blackout also cuts emergency lighting")
+	Events.blackout_ended.emit(6)
+	assert_true(task_lens.is_visible_in_tree(), "restoring power lights the diffuser")
+	assert_true(work_light.is_visible_in_tree(), "restoring power lights the repair")
+	assert_true(emergency.is_visible_in_tree(), "emergency housing stays lit")

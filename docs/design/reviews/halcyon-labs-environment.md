@@ -67,3 +67,21 @@ Captured at player height with the power on and the existing baked lighting. The
 ![Eight Halcyon Labs rooms](images/halcyon-labs/rooms.jpg)
 
 The final High-quality, three-bounce GPU lightmap bake is pending.
+
+## Room dressing against the concepts
+
+Each sheet shows the previous game capture, the current game and the concept from the same viewpoint. The game captures use Godot 4.7.2 Forward+ at 1024 × 648 with the level powered and the player flashlight on.
+
+| Review sheet | Rooms and landmarks |
+|---|---|
+| [Operations](images/halcyon-labs/room-dressing-operations.jpg) | Loading Dock pallet and tyre tracks, Guard Post key cabinet, Mess Hall table service, Main Corridor departmental stripe |
+| [Technical rooms](images/halcyon-labs/room-dressing-technical.jpg) | Generator Hall service cover and work lamp, Labs transfer bay, Coolant Tunnel manifold, Cold Room sample shelf |
+| [Containment and access](images/halcyon-labs/room-dressing-containment.jpg) | Containment Wing snagged curtain and broken glass, Containment Ramp handrail, Vent Route inspection patch |
+
+The fixtures follow level power and Blackout rounds. The ramp has a dedicated emergency fixture before power returns. The dressing is visual and sits outside the navigation region.
+
+To reproduce the current views, run the project’s capture scene. It writes eleven PNGs to `screenshots/room-concepts/`.
+
+```sh
+godot --path . --rendering-method forward_plus --resolution 1024x648 res://tools/room_shots.tscn -- --concepts
+```

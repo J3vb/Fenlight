@@ -1,5 +1,7 @@
 [gd_scene format=3]
 
+[ext_resource type="PackedScene" path="res://levels/halcyon_labs/room_dressing.tscn" id="dressing"]
+
 [ext_resource type="Material" path="res://levels/materials/pipe.tres" id="pipe"]
 [ext_resource type="Script" path="res://systems/level/atmosphere.gd" id="atmosphere"]
 [ext_resource type="PackedScene" path="res://systems/effects/spark_spot.tscn" id="spark"]
@@ -67,7 +69,8 @@ _data = {
 [sub_resource type="StandardMaterial3D" id="dust_mat"]
 transparency = 1
 shading_mode = 0
-albedo_color = Color(0.85, 0.95, 0.95, 0.6)
+albedo_color = Color(0.85, 0.95, 0.95, 0.5)
+albedo_texture = ExtResource("vapor")
 billboard_mode = 1
 
 [sub_resource type="QuadMesh" id="dust_mesh"]
@@ -227,6 +230,10 @@ density = 0.08
 albedo = Color(0.6, 0.7, 0.7, 1)
 height_falloff = 1.5
 edge_fade = 0.3
+
+[sub_resource type="FogMaterial" id="coolant_clearance"]
+density = -0.034
+edge_fade = 0.42
 
 [sub_resource type="FogMaterial" id="research_mist"]
 density = 0.35
@@ -530,9 +537,9 @@ draw_pass_1 = SubResource("steam_mesh")
 [node name="CoolantTunnel" type="GPUParticles3D" parent="Steam" groups=["after_power"]]
 cast_shadow = 0
 gi_mode = 0
-transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 32, 2.8, 12.5)
-amount = 40
-lifetime = 2.5
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 32, 2.77, 12.43)
+amount = 15
+lifetime = 1.15
 visibility_range_end = 30.0
 visibility_aabb = AABB(-2, -3, -2, 4, 6, 4)
 process_material = SubResource("steam_process")
@@ -666,6 +673,11 @@ material = SubResource("research_mist")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 32, 0.6, 12.5)
 size = Vector3(8, 1.2, 3)
 material = SubResource("floor_fog")
+
+[node name="CoolantIntake" type="FogVolume" parent="Fog"]
+position = Vector3(32, 2.05, 12.5)
+size = Vector3(6, 2.55, 2.94)
+material = SubResource("coolant_clearance")
 
 [node name="SwingingLamp" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 41.5, 3.5, 28)
@@ -997,3 +1009,5 @@ draw_pass_1 = SubResource("paper_mesh")
 
 [connection signal="timeout" from="Beacons/BeaconWest/Klaxon/Timer" to="Beacons/BeaconWest/Klaxon" method="play"]
 [connection signal="timeout" from="SmallLife/CorridorPA/Crackle/Timer" to="SmallLife/CorridorPA/Crackle" method="play"]
+
+[node name="RoomDressing" parent="." instance=ExtResource("dressing")]

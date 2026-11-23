@@ -1,10 +1,12 @@
 ## Renders one picture per Halcyon Labs room into screenshots/rooms/ for look checks of
 ## materials and props, and prints the draw calls of each shot. Needs a display:
 ##   xvfb-run -s "-screen 0 1600x900x24" godot --path . --rendering-driver opengl3 res://tools/room_shots.tscn
+## Pass -- --concepts for the eleven paintover cameras, with the player flashlight at 62 degrees FOV.
 extends Node
 
 const MAP: String = "res://levels/halcyon_labs/map.tscn"
-const OUT: String = "res://screenshots/rooms/%s.png"
+const ROOM_DIR: String = "res://screenshots/rooms"
+const CONCEPT_DIR: String = "res://screenshots/room-concepts"
 ## name, camera position, look-at point (map coordinates, metres).
 const SHOTS: Array = [
 	["loading_dock", Vector3(24, 1.7, 58), Vector3(44, 1.2, 48)],
@@ -25,27 +27,58 @@ const SHOTS: Array = [
 	["signs_guard_post", Vector3(15, 1.7, 40), Vector3(14, 1.8, 30)],
 ]
 
+const CONCEPT_SHOTS: Array = [
+	["loading_dock", Vector3(34.9, 1.7, 59.55), Vector3(29, 1.4, 54)],
+	SHOTS[1],
+	SHOTS[2],
+	SHOTS[3],
+	SHOTS[4],
+	SHOTS[5],
+	["coolant_tunnel", Vector3(33.75, 1.65, 13.35), Vector3(30.3, 2.35, 11.65)],
+	SHOTS[7],
+	["containment_ramp", Vector3(52.3, 1.6, 17), Vector3(60.4, -1.7, 18.2)],
+	["vent_route", Vector3(62.7, 2.74, 43), Vector3(62.4, -0.95, 34)],
+	["cold_room", Vector3(51.25, 1.65, 46.8), Vector3(55.6, 1.05, 49.4)],
+]
+
 
 func _ready() -> void:
 	_run.call_deferred()
 
 
 func _run() -> void:
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://screenshots/rooms"))
+	var concepts: bool = OS.get_cmdline_user_args().has("--concepts")
+	var directory: String = CONCEPT_DIR if concepts else ROOM_DIR
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(directory))
 	var map: Node = (load(MAP) as PackedScene).instantiate()
 	add_child(map)
 	(map as Level).turn_power_on()
 	# Lights come back in a wave after power-on; shooting earlier swings room brightness by about 40 %.
 	await get_tree().create_timer(3.0).timeout
 	var camera: Camera3D = Camera3D.new()
-	camera.fov = 75.0
+	camera.fov = 62.0 if concepts else 75.0
+	if concepts:
+		_attach_flashlight(camera)
 	add_child(camera)
 	camera.make_current()
-	for shot: Array in SHOTS:
+	var shots: Array = CONCEPT_SHOTS if concepts else SHOTS
+	for shot: Array in shots:
 		camera.look_at_from_position(shot[1], shot[2])
 		for _i: int in 12:
 			await get_tree().process_frame
-		get_viewport().get_texture().get_image().save_png(OUT % shot[0])
+		get_viewport().get_texture().get_image().save_png(directory.path_join("%s.png" % shot[0]))
 		var draws: int = RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)
 		print("saved %s, draw calls %d" % [shot[0], draws])
+	map.queue_free()
+	camera.queue_free()
+	await get_tree().process_frame
 	get_tree().quit()
+
+
+func _attach_flashlight(camera: Camera3D) -> void:
+	var player: Node = (load("res://systems/player/player.tscn") as PackedScene).instantiate()
+	var light: SpotLight3D = player.get_node("Head/RecoilPivot/Camera3D/Flashlight") as SpotLight3D
+	light.owner = null
+	light.reparent(camera, false)
+	light.visible = true
+	player.free()
