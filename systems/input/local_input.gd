@@ -84,8 +84,14 @@ func _dialog_closed(dialog: Window) -> void:
 	_dismissed_buttons = (_held_buttons() & actions) | _just_pressed_buttons()
 
 
-func dialog_allows(button: int) -> bool:
-	return _input_dialog == null and (_dismissed_buttons & button) == 0
+## The HUD may tick before the player. Read current revive intent through the same dialog filter.
+func interact_held() -> bool:
+	return (
+		enabled
+		and _input_dialog == null
+		and (_dismissed_buttons & InputFrame.INTERACT_HELD) == 0
+		and Input.is_action_pressed(&"interact")
+	)
 
 
 func _unhandled_input(event: InputEvent) -> void:

@@ -118,3 +118,11 @@ func test_dialog_cancels_a_held_revive_until_the_interact_key_is_released() -> v
 	player.last_frame = player.local_input.sample(4)
 	hud._physics_process(0.3)
 	assert_gt(player.revive.progress, 0.0)
+	player.revive._elapsed = player.revive.hold_time() - 0.01
+	var balance: int = player.wallet.points
+	Input.action_release(&"interact")
+	hud._physics_process(0.02)
+	player.revive._physics_process(0.02)
+	assert_eq(player.revive.progress, 0.0, "the HUD sees release before the next player sample")
+	assert_true(teammate.is_downed)
+	assert_eq(player.wallet.points, balance)

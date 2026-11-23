@@ -120,7 +120,11 @@ func test_gameplay_actions_wait_for_the_dialog_and_its_held_click_to_clear() -> 
 	var resumed: InputFrame = _local.sample(2)
 	assert_lt(resumed.move.y, 0.0, "movement resumes with interact still held")
 	assert_true(resumed.has(InputFrame.ADS), "fresh actions work immediately")
-	assert_false(resumed.has(InputFrame.FIRE | InputFrame.LETHAL | InputFrame.INTERACT_HELD))
+	assert_false(
+		resumed.has(
+			InputFrame.FIRE | InputFrame.LETHAL | InputFrame.INTERACT_HELD | InputFrame.INTERACT | InputFrame.MELEE
+		)
+	)
 	Input.action_release(&"ads")
 	Input.action_release(&"move_forward")
 	Input.action_release(&"interact")
