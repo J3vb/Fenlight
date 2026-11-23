@@ -43,18 +43,22 @@ static func vault(rig: ZombieRig, look_name: StringName, t: float, hop: float) -
 			rig.pose_part(&"shin_L", Vector3(1.27 * hop, 0, 0))
 			rig.pose_part(&"shin_R", Vector3(0.39 * hop, 0, 0))
 		_:
-			rig.pose_part(&"ArmL", Vector3(-1.4 + 0.9 * t, 0.0, -0.2))
-			rig.pose_part(&"ArmR", Vector3(-1.4 + 0.9 * t, 0.0, 0.2))
-			rig.pose_part(&"Torso", Vector3(0.6 * hop, 0.0, 0.0))
-			rig.pose_part(&"LegL", Vector3(-0.9 * hop, 0.0, 0.0))
-			rig.pose_part(&"LegR", Vector3(-0.6 * hop, 0.0, 0.0))
-			rig.pose_part(&"Head", Vector3(-0.2 * hop, 0.0, 0.0))
-			rig.pose_part(&"forearm_L", Vector3(-0.35 * hop, 0.0, 0.0))
-			rig.pose_part(&"forearm_R", Vector3(-0.35 * hop, 0.0, 0.0))
-			rig.pose_part(&"shin_L", Vector3(0.75 * hop, 0.0, 0.0))
-			rig.pose_part(&"shin_R", Vector3(0.6 * hop, 0.0, 0.0))
+			_standard_vault(rig, t, hop)
 			return
 	rig.set_hip_offset(Vector3.ZERO)
+
+
+static func _standard_vault(rig: ZombieRig, t: float, hop: float) -> void:
+	rig.pose_part(&"ArmL", Vector3(-1.4 + 0.9 * t, 0.0, -0.2))
+	rig.pose_part(&"ArmR", Vector3(-1.4 + 0.9 * t, 0.0, 0.2))
+	rig.pose_part(&"Torso", Vector3(0.6 * hop, 0.0, 0.0))
+	rig.pose_part(&"LegL", Vector3(-0.9 * hop, 0.0, 0.0))
+	rig.pose_part(&"LegR", Vector3(-0.6 * hop, 0.0, 0.0))
+	rig.pose_part(&"Head", Vector3(-0.2 * hop, 0.0, 0.0))
+	rig.pose_part(&"forearm_L", Vector3(-0.35 * hop, 0.0, 0.0))
+	rig.pose_part(&"forearm_R", Vector3(-0.35 * hop, 0.0, 0.0))
+	rig.pose_part(&"shin_L", Vector3(0.75 * hop, 0.0, 0.0))
+	rig.pose_part(&"shin_R", Vector3(0.6 * hop, 0.0, 0.0))
 
 
 static func relax_pose(look_name: StringName, slack: Dictionary[StringName, Vector3]) -> void:

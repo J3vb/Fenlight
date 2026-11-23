@@ -11,7 +11,9 @@ func _enemy(kind: String) -> Zombie:
 		var look_index: int = 1 if kind == "shambler_guard" else 0
 		while posmod(hash(id), 2) != look_index:
 			id += 1
-	zombie.setup(data, id, 1.0, 1.0, 1.0, RandomNumberGenerator.new())
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 1
+	zombie.setup(data, id, 1.0, 1.0, 1.0, rng)
 	add_child_autofree(zombie)
 	zombie.set_process(false)
 	zombie.set_physics_process(false)

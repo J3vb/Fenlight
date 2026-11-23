@@ -45,7 +45,7 @@ Each says when to fix it.
 - **Zombie AI tiers:** only the re-path interval is tiered. Fix when: the performance pass adds frame-skip and off-screen checks.
 - **No Pool autoload:** impacts reuse a 48-node ring; zombies are freed after the corpse fades. Fix when: a stutter is measured. [hot-path-allocations](plans/hot-path-allocations.md)
 - **Viewmodel** is a normal mesh at near plane 0.03, not a depth shader, so it can poke into walls. Fix when: wall clipping is reported in play-tests.
-- **Procedural animation** for zombies and first-person guns (bob, sway, kick, reload dip). Fix when: real clips are made.
+- **Procedural animation** drives zombie locomotion, vaults, falls and crawler attacks. The upright enemies use baked Blender strike clips. First-person gun bob, sway, kick and reload dip remain procedural.
 - **Range falloff** uses start and end distances, not a Curve. Fix when: a gun needs a curve.
 - **Head hit zone** follows a bone posed in `_process`. Fine for trusted-client hits. Fix when: server-side hit checks or rewind need it on the physics tick.
 - **Crawler** is not spawned: by design it is made when explosives take a Shambler's legs. Fix when: grenades exist (F-24, F-27).
@@ -148,7 +148,7 @@ Agent picks the person may change.
 - **Loadout tabs (F-88):** tabs filter only the stash; all nine slots stay on the figure. FIELD GEAR lists every stash item that is not a gun, so items with a missing base still show. [front-end-concept](plans/front-end-concept.md)
 - **Launcher look (F-82 step 5, provisional):** news is `launcher/news/news.json` read from `main` (built-in copy offline); the backdrop is the Grauwald keyshot (Halcyon has no outside render yet); Host a server is its own sidebar page. [separate-launcher](plans/separate-launcher.md)
 - **Tripo Shamblers, Bloater (F-86, provisional):** Walkers show the lab tech or guard look from `hash(net_id)`; all Tripo zombies share the vein glow; Bloater pods swell 5 cm on a hit (shader, no Belly mesh). [tripo-zombies](plans/tripo-zombies.md)
-- **Upright zombie motion (F-86)** gives the Guard a forearm check, the Bloater a two-handed shove and the Glower a rising claw. Each look has its own gait, vault and fall, sampled on the existing gameplay clock. [tripo-zombies](plans/tripo-zombies.md)
+- **Upright zombie motion (follow-up to F-86)** gives the Guard a forearm check, the Bloater a two-handed shove and the Glower a rising claw. Each look has its own gait, vault and fall, sampled on the existing gameplay clock. [tripo-zombies](plans/tripo-zombies.md)
 - **Tripo Crawler (F-86, provisional):** lab tech Shambler cut at mid-thigh, capped, laid prone (`tripo_intake.py --crawler`); 5,000-9,000 tris; 1.16 m long (old one over 1.2), so its test asks > 1.1 m. [tripo-zombies](plans/tripo-zombies.md)
 - **Launcher install folder (F-82 step 6, provisional):** the game goes into a `Fenlight` folder inside the picked one; Install needs 2.5x the zip free; the folder is picked only before the first install; updates still install on their own. [separate-launcher](plans/separate-launcher.md)
 - **Launcher channels (provisional):** Stable plays only stable installs, so Test back to Stable installs the stable build; an install never prunes the version it just installed. [separate-launcher](plans/separate-launcher.md)

@@ -12,6 +12,8 @@ const CLIPS: Dictionary[StringName, Animation] = {
 const CONTACT_TIME: float = 0.45
 const BLEND_TIME: float = 0.10
 
+static var _skeletal_clips: Dictionary[Animation, Animation] = {}
+
 var _clip: Animation
 var _skeleton: Skeleton3D
 var _mesh: MeshInstance3D
@@ -25,24 +27,35 @@ var _start_fingers: float
 
 
 static func attach(look_name: StringName, skeleton: Skeleton3D) -> ZombieStrike:
-	if not CLIPS.has(look_name):
-		return null
-	var player: ZombieStrike = ZombieStrike.new(skeleton, CLIPS[look_name])
+	var clip: Animation = CLIPS.get(look_name, CLIPS[&"shambler"])
+	var player: ZombieStrike = ZombieStrike.new(skeleton, clip)
 	skeleton.get_parent().add_child(player)
 	return player
 
 
 func _init(skeleton: Skeleton3D, clip: Animation) -> void:
-	_clip = clip
 	_skeleton = skeleton
 	_mesh = skeleton.get_node("Body") as MeshInstance3D
 	_fingers = _mesh.find_blend_shape_by_name("ReachFingers")
+	_clip = _skeletal_clip(clip) if _fingers < 0 else clip
 	_hips = skeleton.find_bone("pelvis")
 	_start_rotations.resize(skeleton.get_bone_count())
 	callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	var library: AnimationLibrary = AnimationLibrary.new()
 	library.add_animation(&"strike", _clip)
 	add_animation_library(&"", library)
+
+
+## Dedicated server exports keep the bones and strip the mesh's blend shapes.
+static func _skeletal_clip(clip: Animation) -> Animation:
+	var track: int = clip.find_track(^"Skeleton3D/Body:ReachFingers", Animation.TYPE_BLEND_SHAPE)
+	if track < 0:
+		return clip
+	if not _skeletal_clips.has(clip):
+		var skeletal: Animation = clip.duplicate() as Animation
+		skeletal.remove_track(track)
+		_skeletal_clips[clip] = skeletal
+	return _skeletal_clips[clip]
 
 
 func sample(phase: float, blend_from_walk: bool) -> void:

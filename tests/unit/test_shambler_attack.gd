@@ -8,7 +8,9 @@ func _walker(look_index: int) -> Zombie:
 	var id: int = 1
 	while posmod(hash(id), 2) != look_index:
 		id += 1
-	zombie.setup(data, id, 1.0, 1.0, 1.0, RandomNumberGenerator.new())
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 1
+	zombie.setup(data, id, 1.0, 1.0, 1.0, rng)
 	add_child_autofree(zombie)
 	zombie.set_process(false)
 	zombie.set_physics_process(false)
@@ -102,3 +104,22 @@ func test_dying_during_contact_relaxes_the_authored_pelvis_and_fingers() -> void
 	assert_almost_eq(skeleton.get_bone_pose_position(pelvis), rest.origin, Vector3.ONE * 0.001)
 	assert_lt(skeleton.get_bone_pose_rotation(pelvis).angle_to(rest.basis.get_rotation_quaternion()), 0.001)
 	assert_almost_eq(body.get_blend_shape_value(body.find_blend_shape_by_name("ReachFingers")), 0.0, 0.001)
+
+
+func test_mesh_stripped_server_samples_the_same_hit_pose_without_the_finger_track() -> void:
+	var lab: Zombie = _walker(0)
+	var skeleton: Skeleton3D = _skeleton(lab)
+	var body: MeshInstance3D = skeleton.get_node("Body")
+	lab.visual.pose_attack(1.0)
+	var hand: int = skeleton.find_bone("hand_R")
+	var hit: Transform3D = skeleton.get_bone_global_pose(hand)
+	var source: Animation = ZombieStrike.CLIPS[&"shambler"]
+	body.mesh = body.mesh.create_placeholder()
+	var server: ZombieStrike = ZombieStrike.attach(&"shambler", skeleton)
+	var clip: Animation = server.get_animation(&"strike")
+	var finger_path: NodePath = ^"Skeleton3D/Body:ReachFingers"
+	assert_eq(clip.find_track(finger_path, Animation.TYPE_BLEND_SHAPE), -1)
+	assert_gt(source.find_track(finger_path, Animation.TYPE_BLEND_SHAPE), -1)
+	server.sample(0.0, false)
+	server.sample(1.0, false)
+	assert_true(hit.is_equal_approx(skeleton.get_bone_global_pose(hand)))

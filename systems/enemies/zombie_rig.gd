@@ -5,6 +5,7 @@ extends Node3D
 ## A foot came down in the walk cycle (twice per cycle).
 signal stepped
 
+const HANDS: Array[StringName] = [&"hand_L", &"hand_R"]
 const PARTS: Dictionary[StringName, StringName] = {
 	&"Hips": &"pelvis",
 	&"Torso": &"spine_02",
@@ -63,8 +64,9 @@ func _ready() -> void:
 	_skeleton = body.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 	_look_name = selected.resource_path.get_file().get_basename()
 	_cadence = ZombieGait.cadence(_look_name)
-	_attack_clip = ZombieStrike.attach(_look_name, _skeleton)
 	_crawler = body.find_child("Crawler", true, false) != null
+	if not _crawler:
+		_attack_clip = ZombieStrike.attach(_look_name, _skeleton)
 	for part_name: StringName in PARTS:
 		if _crawler and part_name in [&"LegL", &"LegR"]:
 			continue
@@ -192,32 +194,10 @@ func pose_walk(speed: float, reach: float, delta: float) -> void:
 
 ## The model reaches contact at t = 1 and finishes recovering at t = 2.
 func pose_attack(t: float, blend_from_walk: bool = false) -> void:
-	if _attack_clip:
-		_attack_clip.sample(t, blend_from_walk)
-		return
 	if _crawler:
 		_pose_crawl_attack(t)
-		return
-	var drive: float = smoothstep(ATTACK_DRAW, 1.0, t)
-	var recover: float = smoothstep(1.18, 2.0, t)
-	# Carry the shoulder through contact while the elbow is still extended.
-	var rake: float = 0.45 * smoothstep(0.88, 1.34, t) * (1.0 - smoothstep(1.34, 1.95, t))
-	var draw: float = smoothstep(0.0, ATTACK_DRAW, t) * (1.0 - drive)
-	var reach: float = drive * (1.0 - recover)
-	var pitch: float = -0.35 + 0.50 * draw - 0.86 * reach + 0.24 * rake
-	var yaw: float = -0.25 * draw + 0.53 * reach + 0.32 * rake
-	pose_part(&"ArmR", Vector3(pitch, yaw, 0.37 * pow(1.0 - reach, 3.0) - 0.63 * draw + 0.12 * rake))
-	var elbow: Vector3 = Vector3(-0.27 - 0.83 * draw + 0.04 * reach, 0.38 * draw + 0.28 * reach + 0.16 * rake, 0.0)
-	pose_grasp(&"forearm_R", &"hand_R", elbow, -0.95 + 0.25 * draw - 1.20 * reach)
-	pose_part(&"ArmL", Vector3(-0.55 - 0.12 * draw + 0.39 * reach, -0.18, -0.23 + 0.06 * reach))
-	pose_grasp(&"forearm_L", &"hand_L", Vector3(-0.66 + 0.21 * reach, -0.28, 0.0), 0.95 + 0.35 * draw)
-	pose_part(&"Torso", Vector3(0.05 - 0.13 * draw + 0.25 * reach, -0.20 * draw + 0.15 * reach + 0.16 * rake, 0.0))
-	pose_part(&"Head", Vector3(-0.10 * reach, 0.14 * draw - 0.17 * reach, 0.0))
-	pose_part(&"LegL", Vector3(0.12 * reach, 0.0, 0.0))
-	pose_part(&"LegR", Vector3(-0.10 * reach, 0.0, 0.0))
-	pose_part(&"shin_L", Vector3(0.14 * reach, 0.0, 0.0))
-	pose_part(&"shin_R", Vector3(0.15 * draw, 0.0, 0.0))
-	_skeleton.set_bone_pose_position(_bones[&"Hips"], _hips_rest)
+	else:
+		_attack_clip.sample(t, blend_from_walk)
 
 
 func _pose_crawl(speed: float, reach: float, delta: float) -> void:
@@ -250,7 +230,7 @@ func _pose_crawl_attack(t: float) -> void:
 func pose_vault(t: float, delta: float = 1.0) -> void:
 	if _attack_clip:
 		_attack_clip.release()
-	for hand: StringName in [&"hand_L", &"hand_R"]:
+	for hand: StringName in HANDS:
 		_skeleton.set_bone_pose_rotation(_bones[hand], _rest[hand])
 	var hop: float = sin(t * PI)
 	position = Vector3(0.0, VAULT_HEIGHT * hop, 0.0)
