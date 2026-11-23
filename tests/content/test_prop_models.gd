@@ -96,3 +96,46 @@ func test_library_slots_load() -> void:
 	for slot: String in ["Stone", "Tile", "Enamel", "Ice", "Burlap", "Beacon"]:
 		assert_true(IMPORTER.SHARED.has(slot), slot + " is a shared slot")
 		assert_true(load(IMPORTER.SHARED[slot]) is Material, slot + " loads as a material")
+
+
+func test_intact_tank_keeps_its_specimen_visible_through_the_fluid() -> void:
+	var mesh: Mesh = _meshes("res://assets/models/props/specimen_tank.glb")[0].mesh
+	var fluid: StandardMaterial3D = load(IMPORTER.SHARED["IntactTankFluid"]) as StandardMaterial3D
+	var surfaces: Array[Material] = []
+	for i: int in mesh.get_surface_count():
+		surfaces.append(mesh.surface_get_material(i))
+	assert_has(surfaces, fluid, "the intact tank uses the translucent liquid")
+	assert_eq(fluid.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA)
+	assert_eq(fluid.cull_mode, BaseMaterial3D.CULL_FRONT, "the far wall of the liquid lights the silhouette")
+	assert_between(fluid.albedo_color.a, 0.05, 0.95, "the fluid transmits the room behind the tank")
+
+
+func test_generator_import_keeps_its_surface_maps() -> void:
+	var mesh: Mesh = _meshes("res://assets/models/props/generator.glb")[0].mesh
+	assert_eq(mesh.get_surface_count(), 1, "generator parts share their atlas")
+	var finish: ORMMaterial3D = mesh.surface_get_material(0) as ORMMaterial3D
+	assert_not_null(finish, "generator uses its painted finish")
+	if finish:
+		assert_eq(finish.resource_path, "res://levels/materials/generator_finish.tres")
+		assert_not_null(finish.albedo_texture, "printed panel art loads")
+		assert_not_null(finish.orm_texture, "paint and bare steel have different sheen")
+		assert_true(finish.normal_enabled and finish.normal_texture != null, "surface relief loads")
+
+
+func test_dock_pair_uses_the_facility_atlas_in_game() -> void:
+	var finish: ORMMaterial3D = load(IMPORTER.SHARED["FacilityFinish"]) as ORMMaterial3D
+	assert_not_null(finish)
+	if finish == null:
+		return
+	assert_not_null(finish.albedo_texture, "freight and transport markings")
+	assert_not_null(finish.orm_texture, "separate roughness and metalness")
+	assert_true(finish.normal_enabled and finish.normal_texture != null, "surface relief")
+	for id: String in ["supply_truck", "crate_stack"]:
+		var mesh: Mesh = _meshes("res://assets/models/props/%s.glb" % id)[0].mesh
+		assert_eq(mesh.get_surface_count(), 1, id)
+		assert_eq(mesh.surface_get_material(0), finish, id)
+		var uv: PackedVector2Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_TEX_UV]
+		var tiles: Dictionary = {}
+		for point: Vector2 in uv:
+			tiles[Vector2i((point * 8.0).floor())] = true
+		assert_gte(tiles.size(), 4, id + " uses multiple authored regions")

@@ -60,3 +60,10 @@ func test_awning_is_canvas_and_sign_is_painted() -> void:
 	assert_has(_material_paths("stall_frame"), MATERIALS + "town_canvas.tres", "stall awning uses Canvas")
 	assert_has(_material_paths("stall_sign"), MATERIALS + "town_sign_paint.tres", "sign board uses SignPaint")
 	assert_has(_material_paths("tech_desk"), SHARED_SCREEN, "tech desk monitors glow like the lab screens")
+
+
+func test_missions_board_uses_the_printed_survey_atlas() -> void:
+	var print_path: String = MATERIALS + "cordon_print.tres"
+	assert_has(_material_paths("missions_board"), print_path)
+	var paper: StandardMaterial3D = load(print_path) as StandardMaterial3D
+	assert_not_null(paper.albedo_texture, "the chart and notices have their printed ink")

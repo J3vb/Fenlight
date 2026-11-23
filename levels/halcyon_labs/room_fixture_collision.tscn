@@ -1,0 +1,104 @@
+[gd_scene format=3]
+
+[sub_resource type="BoxShape3D" id="HeatRail"]
+size = Vector3(1.38, 0.061, 0.11)
+
+[sub_resource type="BoxShape3D" id="HeatShade0"]
+size = Vector3(0.28, 0.17, 0.28)
+
+[sub_resource type="BoxShape3D" id="HeatShade1"]
+size = Vector3(0.28, 0.17, 0.28)
+
+[sub_resource type="BoxShape3D" id="JunctionBox"]
+size = Vector3(0.53, 0.52, 0.15)
+
+[sub_resource type="BoxShape3D" id="PlantPullBox"]
+size = Vector3(0.24, 1.09, 0.86)
+
+[sub_resource type="BoxShape3D" id="RemovedCover"]
+size = Vector3(1.18, 1.15, 0.068)
+
+[sub_resource type="BoxShape3D" id="PortableWorkLamp"]
+size = Vector3(0.45, 0.73, 0.3)
+
+[sub_resource type="BoxShape3D" id="EmergencyBacking"]
+size = Vector3(0.52, 0.25, 0.16)
+
+[sub_resource type="BoxShape3D" id="ColdShelf"]
+size = Vector3(0.43, 0.066, 2.25)
+
+[sub_resource type="BoxShape3D" id="ShelfLightBack"]
+size = Vector3(0.15, 0.09, 0.66)
+
+[node name="RoomFixtureCollision" type="Node3D"]
+
+[node name="HeatRail" type="StaticBody3D" parent="."]
+position = Vector3(45.02, 2.57, 40.57)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="HeatRail"]
+shape = SubResource("HeatRail")
+
+[node name="HeatShade0" type="StaticBody3D" parent="."]
+position = Vector3(44.57, 2.46, 40.57)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="HeatShade0"]
+shape = SubResource("HeatShade0")
+
+[node name="HeatShade1" type="StaticBody3D" parent="."]
+position = Vector3(45.48, 2.46, 40.57)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="HeatShade1"]
+shape = SubResource("HeatShade1")
+
+[node name="JunctionBox" type="StaticBody3D" parent="."]
+position = Vector3(21.87, 1.07, 26.3)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="JunctionBox"]
+shape = SubResource("JunctionBox")
+
+[node name="PlantPullBox" type="StaticBody3D" parent="."]
+position = Vector3(27.63, 1.67, 20.32)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="PlantPullBox"]
+shape = SubResource("PlantPullBox")
+
+[node name="RemovedCover" type="StaticBody3D" parent="."]
+position = Vector3(14.42, 0.62, 14.46)
+collision_mask = 0
+rotation = Vector3(-0.244346, 0, -0.05236)
+
+[node name="Shape" type="CollisionShape3D" parent="RemovedCover"]
+shape = SubResource("RemovedCover")
+
+[node name="PortableWorkLamp" type="StaticBody3D" parent="."]
+position = Vector3(13.23, 0.39, 14.77)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="PortableWorkLamp"]
+shape = SubResource("PortableWorkLamp")
+
+[node name="EmergencyBacking" type="StaticBody3D" parent="."]
+position = Vector3(56.86, -0.99, 19.71)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="EmergencyBacking"]
+shape = SubResource("EmergencyBacking")
+
+[node name="ColdShelf" type="StaticBody3D" parent="."]
+position = Vector3(56.57, 1.81, 48.98)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="ColdShelf"]
+shape = SubResource("ColdShelf")
+
+[node name="ShelfLightBack" type="StaticBody3D" parent="."]
+position = Vector3(56.42, 1.72, 49.16)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="ShelfLightBack"]
+shape = SubResource("ShelfLightBack")

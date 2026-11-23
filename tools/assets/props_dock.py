@@ -2,6 +2,7 @@
 forklift. Same rules as prop_models.py.
 """
 
+import bpy
 import prop_models as p
 
 
@@ -18,8 +19,8 @@ def _dock():
 def _wheel(m, name: str, x: float, y: float, radius: float, width: float) -> None:
     from build_models import cylinder
 
-    cylinder(name, radius, width, (x, y, radius), m["dark"], axis="x")
-    cylinder(name + "Hub", radius * 0.45, width + 0.02, (x, y, radius), m["steel"], axis="x")
+    cylinder(name, radius, width, (x, y, radius), m["dark"], axis="x", vertices=16)
+    cylinder(name + "Hub", radius * 0.45, width + 0.02, (x, y, radius), m["steel"], axis="x", vertices=10)
 
 
 def build_supply_truck() -> None:
@@ -30,7 +31,6 @@ def build_supply_truck() -> None:
     m = {**p._mats(), **_dock()}
     box("Chassis", (1.9, 6.8, 0.25), (0, 0.05, 0.72), m["dark"])
     box("Body", (2.6, 4.6, 2.0), (0, 1.1, 1.8), m["olive"], bevel=0.03)
-    box("BodyScorch", (2.62, 1.2, 1.2), (0, -0.9, 2.2), m["dark"])
     box("Doors", (2.4, 0.04, 1.8), (0, 3.42, 1.8), m["steel"])
     box("Cab", (2.4, 1.7, 1.4), (0, -2.45, 1.55), m["dark"], bevel=0.06)
     box("CabRoof", (2.3, 1.3, 0.12), (0, -2.35, 2.31), m["olive"], bevel=0.02)
@@ -38,6 +38,10 @@ def build_supply_truck() -> None:
     box("Bumper", (2.5, 0.12, 0.22), (0, -3.56, 0.72), m["steel"])
     box("Windscreen", (2.1, 0.05, 0.55), (0, -3.29, 1.95), m["dark"])
     for side in (-1, 1):
+        box(f"SideGlass{side}", (0.022, 1.20, 0.51), (side * 1.205, -2.53, 1.95), m["dark"], bevel=0.008)
+        box(f"DoorPull{side}", (0.06, 0.19, 0.043), (side * 1.214, -1.97, 1.58), m["steel"], bevel=0.009)
+        box(f"Step{side}", (0.22, 0.72, 0.09), (side * 1.18, -2.1, 0.64), m["dark"], bevel=0.014)
+        box(f"Lamp{side}", (0.29, 0.028, 0.19), (side * 0.88, -3.624, 1.27), m["steel"], bevel=0.005)
         box(f"Mirror{side}", (0.08, 0.06, 0.3), (side * 1.27, -2.9, 1.95), m["steel"])
         for k, y in enumerate((-2.85, 1.9, 2.85)):
             _wheel(m, f"Wheel{side}{k}", side * 1.0, y, 0.5, 0.36)
@@ -53,6 +57,16 @@ def _crate(m, name: str, size: tuple, at: tuple) -> None:
     box(name, size, (x, y, z + sz / 2), m["wood"], bevel=0.02)
     for band in (-1, 1):
         box(f"{name}Band{band}", (sx + 0.02, 0.06, sz + 0.02), (x, y + band * (sy / 2 - 0.1), z + sz / 2), m["steel"])
+    for side in (-1, 1):
+        # Raised battens on each end give the flush-painted boards a silhouette at dock distance.
+        for corner in (-1, 1):
+            box(
+                f"{name}Batten{side}{corner}",
+                (0.068, 0.032, sz - 0.025),
+                (x + corner * (sx / 2 - 0.065), y + side * (sy / 2 + 0.006), z + sz / 2),
+                m["wood"],
+                bevel=0.006,
+            )
     box(f"{name}Stencil", (sx * 0.5, 0.012, sz * 0.25), (x, y - sy / 2 - 0.006, z + sz * 0.6), m["paper"])
 
 
@@ -94,11 +108,27 @@ def build_forklift() -> None:
     from build_models import box, cylinder
 
     m = {**p._mats(), **_dock()}
-    box("Body", (1.3, 1.1, 0.75), (0.45, 0, 0.6), m["sodium"], bevel=0.05)
-    box("Counterweight", (0.35, 1.1, 0.6), (1.03, 0, 0.55), m["dark"], bevel=0.04)
+    box("Body", (0.91, 1.06, 0.75), (0.255, 0, 0.6), m["sodium"], bevel=0.05)
+    box("Counterweight", (0.63, 1.12, 0.69), (0.90, 0, 0.61), m["sodium"], bevel=0.15)
+    box("RearBumper", (0.20, 0.96, 0.12), (1.11, 0, 0.34), m["dark"], bevel=0.04)
+    column = box("SteeringColumn", (0.12, 0.12, 0.41), (-0.01, 0, 1.12), m["dark"], bevel=0.02)
+    column.rotation_euler.y = 0.36
+    bpy.ops.mesh.primitive_torus_add(
+        major_segments=16,
+        minor_segments=6,
+        major_radius=0.15,
+        minor_radius=0.021,
+        location=(0.06, 0, 1.31),
+        rotation=(0, 0.70, 0),
+    )
+    wheel = bpy.context.object
+    wheel.name = "SteeringWheel"
+    wheel.data.materials.append(m["dark"])
+    box("WheelSpoke", (0.035, 0.29, 0.027), (0.06, 0, 1.31), m["steel"])
     box("Seat", (0.4, 0.45, 0.12), (0.55, 0, 1.03), m["dark"])
     box("SeatBack", (0.08, 0.45, 0.4), (0.78, 0, 1.25), m["dark"])
     for y in (-0.5, 0.5):
+        box(f"Step{y}", (0.49, 0.13, 0.075), (0.34, y, 0.40), m["dark"], bevel=0.016)
         box(f"GuardPost{y}", (0.05, 0.05, 1.25), (0.05, y, 1.6), m["dark"])
         box(f"GuardPostRear{y}", (0.05, 0.05, 1.25), (0.95, y, 1.6), m["dark"])
         box(f"Mast{y}", (0.08, 0.1, 2.15), (-0.32, y * 0.6, 1.08), m["steel"])
@@ -109,6 +139,7 @@ def build_forklift() -> None:
     for x, r in ((-0.05, 0.25), (0.95, 0.22)):
         for y in (-0.52, 0.52):
             cylinder(f"Wheel{x}{y}", r, 0.18, (x, y, r), m["dark"], axis="y")
+            cylinder(f"Hub{x}{y}", r * 0.61, 0.026, (x, y * 1.18, r), m["steel"], axis="y")
     p._merge("Forklift")
 
 

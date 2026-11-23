@@ -8,9 +8,10 @@
 [resource]
 shader = ExtResource("shader")
 shader_parameter/base_color = Color(0.42, 0.46, 0.44, 1)
-shader_parameter/roughness = 1.0
+shader_parameter/roughness = 0.85
 shader_parameter/stains = 0.35
 shader_parameter/albedo_map = ExtResource("albedo")
 shader_parameter/normal_map = ExtResource("normal")
 shader_parameter/orm_map = ExtResource("orm")
 shader_parameter/texel_scale = 1.2
+shader_parameter/map_normal_strength = 0.65

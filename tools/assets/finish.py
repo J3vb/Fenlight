@@ -96,6 +96,8 @@ def fix_normals(obj) -> None:
 def unwrap(obj) -> None:
     """Smart-projects the first UV map. A second map (gun `Markings`) is authored and kept."""
     layers = obj.data.uv_layers
+    if layers and layers[0].name == "PrintLayout":
+        return  # Keep the atlas coordinates on printed sheets.
     if len(layers) > 1:
         layers.active_index = 0
     _select_only(obj)
