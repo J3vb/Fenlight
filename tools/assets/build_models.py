@@ -295,7 +295,12 @@ def export(path: str) -> None:
     if metadata is not None:
         metadata = json.dumps(json.loads(metadata), sort_keys=True, allow_nan=False) + "\n"
     bpy.ops.export_scene.gltf(
-        filepath=path, export_format="GLB", export_yup=True, export_apply=True, export_vertex_color="ACTIVE"
+        filepath=path,
+        export_format="GLB",
+        export_yup=True,
+        export_apply=True,
+        export_vertex_color="ACTIVE",
+        export_tangents=bpy.data.materials.get("GeneratorFinish") is not None,
     )
     if metadata is not None:
         with open(os.path.join(os.path.dirname(path), "player_arm_grips.json"), "w", encoding="utf-8") as output:

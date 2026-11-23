@@ -4,6 +4,8 @@ holding cell with a bent door, wall pipe runs and hazard signs. Same rules as pr
 
 import math
 
+import bpy
+import generator_finish
 import prop_models as p
 
 
@@ -52,7 +54,14 @@ def build_generator() -> None:
     cylinder("FuelLine", 0.03, 3.6, (0.0, 1.12, 0.32), m["steel"], axis="x")
     for i in range(4):
         box(f"Rocker{i}", (0.3, 0.6, 0.1), (-1.0 + i * 0.44, 0.1, 1.93), m["steel"])
+    generator_finish.apply()
     p._merge("Generator")
+    generator = bpy.context.active_object
+    generator.data.uv_layers[0].name = "PrintLayout"
+    # Blender needs triangles on the alternator and gauge caps to export normal-map tangents.
+    triangulate = generator.modifiers.new("Triangulate caps", "TRIANGULATE")
+    triangulate.min_vertices = 5
+    bpy.ops.object.modifier_apply(modifier=triangulate.name)
 
 
 def build_holding_cell() -> None:

@@ -108,3 +108,15 @@ func test_intact_tank_keeps_its_specimen_visible_through_the_fluid() -> void:
 	assert_eq(fluid.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA)
 	assert_eq(fluid.cull_mode, BaseMaterial3D.CULL_FRONT, "the far wall of the liquid lights the silhouette")
 	assert_between(fluid.albedo_color.a, 0.05, 0.95, "the fluid transmits the room behind the tank")
+
+
+func test_generator_import_keeps_its_surface_maps() -> void:
+	var mesh: Mesh = _meshes("res://assets/models/props/generator.glb")[0].mesh
+	assert_eq(mesh.get_surface_count(), 1, "generator parts share their atlas")
+	var finish: ORMMaterial3D = mesh.surface_get_material(0) as ORMMaterial3D
+	assert_not_null(finish, "generator uses its painted finish")
+	if finish:
+		assert_eq(finish.resource_path, "res://levels/materials/generator_finish.tres")
+		assert_not_null(finish.albedo_texture, "printed panel art loads")
+		assert_not_null(finish.orm_texture, "paint and bare steel have different sheen")
+		assert_true(finish.normal_enabled and finish.normal_texture != null, "surface relief loads")
