@@ -26,6 +26,9 @@ class Profile:
 	extends RefCounted
 	var id: StringName
 	var morph: StringName
+	var carry_morph: StringName
+	var carry_index: Vector3
+	var carry_thumb: Vector3
 	var hip_position: Vector3
 	var right: Hand
 	var left: Hand
@@ -47,6 +50,12 @@ static func profile(data: WeaponData) -> Profile:
 	var result: Profile = Profile.new()
 	result.id = grip.id
 	result.morph = StringName(source["morph"])
+	if source.has("carry"):
+		var carry: Dictionary = source["carry"]
+		var conversion: Basis = Basis(Vector3.RIGHT, Vector3.FORWARD, Vector3.UP)
+		result.carry_morph = StringName(carry["morph"])
+		result.carry_index = conversion * _vector(carry["index"])
+		result.carry_thumb = conversion * _vector(carry["thumb"])
 	result.hip_position = data.hip_position
 	result.right = _hand(
 		"R", grip.right_anchor, source["R"], grip.right_forward, grip.right_dorsal, grip.right_shoulder

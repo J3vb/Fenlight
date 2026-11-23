@@ -71,6 +71,7 @@ def test_finished_arm_export_has_all_zero_default_morphs_and_matching_metadata(t
     assert metadata["version"] == 1 and set(metadata["profiles"]) == set(profiles.PROFILES)
     mesh = document["meshes"][0]
     expected = ["grip_" + profile for profile in profiles.PROFILES if profile != "rifle_ar"]
+    expected += ["carry_coachman_2b", "carry_grubber_sawnoff"]
     assert mesh["extras"]["targetNames"] == expected
     assert mesh["weights"] == [0.0] * len(expected)
     assert len(document["skins"][0]["joints"]) == 22

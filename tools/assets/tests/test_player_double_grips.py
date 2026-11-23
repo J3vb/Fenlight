@@ -94,3 +94,20 @@ def test_coachman_palm_seats_against_the_stock_neck():
     gaps = [tree.find_nearest(double._gun(point, "coachman_2b"))[3] for point in points]
     assert 0.0005 < min(gaps) < 0.0035, "fingertip contact alone must not leave the palm suspended"
     assert sum(distance < 0.005 for distance in gaps) >= 3, "the stock needs a palm contact patch"
+
+
+def test_shell_carry_flexes_each_finger_toward_the_palm():
+    import player_shell_grasp as carry
+
+    across, along, inward = grip._frame(1)
+    for index in range(4):
+        points = carry.finger_path(Vector((0.675, -0.012, 0.985)) + across * ((index - 1.5) * 0.016), index)
+        angles = []
+        for start, end in zip((0, 3, 6), (3, 6, 9), strict=True):
+            segment = points[end] - points[start]
+            assert abs(segment.dot(across)) < 0.0001
+            angles.append(math.degrees(math.atan2(segment.dot(inward), segment.dot(along))))
+        assert 0 < angles[0] < angles[1] < angles[2] < 115
+        assert 0.06 < grip_checks.path_length(points) < 0.09
+        if index == 0:
+            assert 0.011 < (points[-1] - carry.thumb_path()[-1]).length < 0.021

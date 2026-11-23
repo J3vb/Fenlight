@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://systems/weapons/break_action_reload.gd" id="motion"]
+[ext_resource type="PackedScene" path="res://systems/weapons/viewmodels/reload_shell.tscn" id="shell"]
+
+[node name="BreakActionReload" type="Node3D"]
+script = ExtResource("motion")
+
+[node name="ShellL" parent="." instance=ExtResource("shell")]
+
+[node name="ShellR" parent="." instance=ExtResource("shell")]

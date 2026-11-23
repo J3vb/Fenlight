@@ -10,13 +10,23 @@ BORE_Z = 0.032
 BARREL_X = 0.015
 MUZZLE_Y = 0.30
 SIGHT_Z = 0.063
+HINGE = (0, 0.038, 0.006)
 
 
 def frame_parts(metal, black):
     """Sculpted action body with real sideplate recesses and visible hinge pins."""
     frame = g.slab(
         "Receiver",
-        [(-0.08, -0.012), (0.035, -0.012), (0.06, 0.008), (0.06, 0.038), (-0.055, 0.042), (-0.08, 0.027)],
+        [
+            (-0.08, -0.012),
+            (0.035, -0.012),
+            (0.06, 0.008),
+            (0.06, 0.015),
+            (-0.029, 0.016),
+            (-0.031, 0.042),
+            (-0.055, 0.042),
+            (-0.08, 0.027),
+        ],
         0.054,
         metal,
         bevel=0.003,
@@ -28,7 +38,7 @@ def frame_parts(metal, black):
     g.cut(frame, cuts)
     parts = [
         g.slab("ActionTang", g.rounded(-0.099, 0.023, -0.045, 0.037, 0.004), 0.018, black, bevel=0.001),
-        g.slab("BreechFace", g.rounded(0.03, 0.0, 0.045, 0.043, 0.003), 0.052, black, bevel=0.001),
+        g.slab("BreechFace", g.rounded(-0.046, 0.0, -0.030, 0.043, 0.003), 0.052, black, bevel=0.001),
     ]
     for side in (-1, 1):
         parts.append(
@@ -46,21 +56,22 @@ def barrels(m, receiver, metal, black):
         at = (side * BARREL_X, 0, BORE_Z)
         tube = g.lathe(
             name,
-            [(0.016, 0.043), (0.016, 0.085), (0.0144, 0.1), (0.0144, 0.296), (0.014, MUZZLE_Y)],
+            [(0.016, -0.029), (0.016, 0.085), (0.0144, 0.1), (0.0144, 0.296), (0.014, MUZZLE_Y)],
             at,
             black,
             32,
         )
-        bore = [(0.0102, 0.041), (0.0102, 0.296), (0.0109, MUZZLE_Y), (0.0109, 0.302)]
+        bore = [(0.0102, -0.032), (0.0102, 0.296), (0.0109, MUZZLE_Y), (0.0109, 0.302)]
         g.cut(tube, [g.lathe("BoreCut", bore, at, metal, 24)])
         crown = g.lathe("CutCrown", [(0.0145, 0.296), (0.0145, MUZZLE_Y)], at, metal, 32)
         g.cut(crown, [g.lathe("CrownCut", [(0.0102, 0.295), (0.0109, 0.302)], at, metal, 24)])
         m.join_into(tube, [crown])
+        if side < 0:
+            rib = g.slab("Rib", g.rounded(0.05, 0.044, 0.296, 0.051, 0.002), 0.007, black, bevel=0.0005)
+            web = g.slab("BarrelWeb", [(0.047, 0.019), (0.294, 0.019), (0.294, 0.023), (0.047, 0.023)], 0.008, black)
+            bead = g.lathe("SightBead", [(0.003, 0.052), (0.003, SIGHT_Z - 0.001)], (0, 0.282, 0), metal, 12, axis="z")
+            m.join_into(tube, [rib, web, bead])
         m.attach(tube, (side * BARREL_X, 0.047, BORE_Z), receiver)
-    rib = g.slab("Rib", g.rounded(0.05, 0.044, 0.296, 0.051, 0.002), 0.007, black, bevel=0.0005)
-    web = g.slab("BarrelWeb", [(0.047, 0.019), (0.294, 0.019), (0.294, 0.023), (0.047, 0.023)], 0.008, black)
-    m.join_into(receiver, [rib, web])
-    m.marker("Muzzle", (0, 0.302, BORE_Z), parent=receiver)
 
 
 def grip(m, receiver, metal, black, wood, checker):
@@ -156,7 +167,7 @@ def controls(m, receiver, metal, black):
 def sights(m, receiver, metal, black):
     """Shallow rear notch and tall enough bead to give a clear sight line over the rib."""
     base = g.slab("IronSights", g.rounded(-0.041, 0.043, -0.029, 0.047, 0.001), 0.024, black)
-    parts = [g.lathe("SightBead", [(0.003, 0.052), (0.003, SIGHT_Z - 0.001)], (0, 0.282, 0), metal, 12, axis="z")]
+    parts = []
     for side in (-1, 1):
         parts.append(
             g.slab(f"NotchEar{side}", g.rounded(-0.039, 0.047, -0.031, 0.064, 0.001), 0.004, black, x=side * 0.006)
@@ -173,9 +184,11 @@ def build(m) -> None:
     checker = m.material("WoodKnurled", m.WOOD, roughness=0.8)
     receiver, pieces = frame_parts(metal, black)
     m.join_into(receiver, pieces)
-    barrels(m, receiver, metal, black)
+    hinge = m.marker("Hinge", HINGE, parent=receiver)
+    barrels(m, hinge, metal, black)
+    m.marker("Muzzle", (0, MUZZLE_Y + 0.002 - HINGE[1], BORE_Z - HINGE[2]), parent=hinge)
     grip(m, receiver, metal, black, wood, checker)
-    forepiece(m, receiver, metal, wood, checker)
+    forepiece(m, hinge, metal, wood, checker)
     controls(m, receiver, metal, black)
     sights(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.055, 0.021, 0.01, 0.023, 0.0007), 0.0007, 0.0263, metal)

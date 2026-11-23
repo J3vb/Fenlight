@@ -8,28 +8,32 @@
 [ext_resource type="PackedScene" path="res://systems/weapons/viewmodels/hand_left.tscn" id="hand_left"]
 [ext_resource type="PackedScene" path="res://systems/weapons/viewmodels/sleeve_left.tscn" id="sleeve_left"]
 
+[ext_resource type="PackedScene" path="res://systems/weapons/viewmodels/break_action_reload.tscn" id="break_reload"]
+
 [node name="Viewmodel" type="Node3D"]
 
 [node name="Grubber" parent="." instance=ExtResource("1")]
 
-[node name="FlashLight" type="OmniLight3D" parent="Grubber/Receiver/Muzzle"]
+[node name="BreakActionReload" parent="Grubber/Receiver/Hinge" instance=ExtResource("break_reload")]
+
+[node name="FlashLight" type="OmniLight3D" parent="Grubber/Receiver/Hinge/Muzzle"]
 light_color = Color(1, 0.7, 0.35, 1)
 light_energy = 6.0
 omni_range = 6.0
 
-[node name="FlashMesh" type="Node3D" parent="Grubber/Receiver/Muzzle"]
+[node name="FlashMesh" type="Node3D" parent="Grubber/Receiver/Hinge/Muzzle"]
 
-[node name="A" type="MeshInstance3D" parent="Grubber/Receiver/Muzzle/FlashMesh"]
+[node name="A" type="MeshInstance3D" parent="Grubber/Receiver/Hinge/Muzzle/FlashMesh"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.05)
 cast_shadow = 0
 mesh = ExtResource("flash_quad")
 
-[node name="B" type="MeshInstance3D" parent="Grubber/Receiver/Muzzle/FlashMesh"]
+[node name="B" type="MeshInstance3D" parent="Grubber/Receiver/Hinge/Muzzle/FlashMesh"]
 transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, -0.08)
 cast_shadow = 0
 mesh = ExtResource("flash_quad")
 
-[node name="C" type="MeshInstance3D" parent="Grubber/Receiver/Muzzle/FlashMesh"]
+[node name="C" type="MeshInstance3D" parent="Grubber/Receiver/Hinge/Muzzle/FlashMesh"]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 0, 0, -0.08)
 cast_shadow = 0
 mesh = ExtResource("flash_quad")

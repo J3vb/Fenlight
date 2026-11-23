@@ -13,6 +13,7 @@ const CUES: Dictionary[StringName, AudioStream] = {
 var weapon: Weapon
 ## Reload key poses, or null for guns that keep the dip (no Magazine, or no LoadShell on a round-by-round gun).
 var motion: ReloadMotion
+var break_action: BreakActionReload
 var mech_audio: AudioStreamPlayer
 var _stance_position: Vector3
 var _stance_rotation: Vector3 = Vector3.ZERO
@@ -38,13 +39,16 @@ static func attach_to(owner_weapon: Weapon) -> WeaponPose:
 	var pose: WeaponPose = WeaponPose.new()
 	pose.name = "Pose"
 	pose.weapon = owner_weapon
-	pose._stance_position = owner_weapon.data.hip_position if owner_weapon.instance else owner_weapon.position
+	pose._stance_position = (owner_weapon.data.hip_position if owner_weapon.instance else owner_weapon.position)
 	pose.mech_audio = owner_weapon.get_node_or_null(^"MechAudio") as AudioStreamPlayer
 	owner_weapon.add_child(pose)
 	return pose
 
 
 func find_moving_parts(vm: Node) -> void:
+	break_action = vm.find_child("BreakActionReload", true, false) as BreakActionReload
+	if break_action:
+		break_action.bind(weapon)
 	_flash_light = vm.find_child("FlashLight", true, false) as Light3D
 	_flash_mesh = vm.find_child("FlashMesh", true, false) as Node3D
 	_magazine = vm.find_child("Magazine", true, false) as Node3D
@@ -73,6 +77,11 @@ func update(delta: float) -> void:
 	_flash_timer -= delta
 	if _flash_timer <= 0.0:
 		set_flash(false)
+	if break_action:
+		if weapon.is_reloading():
+			break_action.sample(_reload_t(), weapon.instance.ammo_in_mag, weapon.instance.ammo_reserve)
+		else:
+			break_action.settle(delta, weapon.instance.ammo_in_mag)
 	_update_pose(delta)
 
 
@@ -127,6 +136,8 @@ func _update_pose(delta: float) -> void:
 			_hand_target = motion.hand_target
 	if not reloading:
 		_cue_t = 0.0
+	if break_action:
+		pos += Vector3(-0.018, 0.005, -0.095) * break_action.relax
 	var blend: float = 1.0 - exp(-45.0 * delta)
 	_stance_position = _stance_position.lerp(pos, blend)
 	_stance_rotation = _stance_rotation.lerp(rot, blend)
@@ -152,22 +163,30 @@ func _play_cue(t: float) -> void:
 ## Support-hand offset from its grip, weapon-local, blended by the reload motion (zero when not reloading).
 ## It eases back to the grip when a reload is cancelled.
 func reload_hand(grip_wrist: Vector3) -> Vector3:
+	if break_action:
+		return break_action.hand_offset(grip_wrist)
 	return (_hand_target - grip_wrist) * _hand_weight if motion else Vector3.ZERO
 
 
 ## How far the support hand may turn off its grip rotation (0 on the grip, 1 while it handles the magazine).
 func reload_relax() -> float:
+	if break_action:
+		return break_action.relax
 	return clampf(_hand_weight * 2.0, 0.0, 1.0) if motion else 0.0
 
 
 func _pose_moving_parts(kick: float) -> void:
+	if break_action:
+		return
 	var back: float = kick / maxf(weapon.data.viewmodel_kick, 0.001)
 	var reloading: bool = weapon.state == Weapon.State.RELOADING
 	if motion:
 		if _bolt:
-			_bolt.position = _bolt_rest + Vector3(0.0, 0.0, 0.035 * maxf(back, motion.bolt_back if reloading else 0.0))
+			_bolt.position = (
+				_bolt_rest + Vector3(0.0, 0.0, 0.035 * maxf(back, motion.bolt_back if reloading else 0.0))
+			)
 		if _magazine:
-			_magazine.position = _magazine_rest + (_mag_to_parent * motion.mag_offset if reloading else Vector3.ZERO)
+			_magazine.position = (_magazine_rest + (_mag_to_parent * motion.mag_offset if reloading else Vector3.ZERO))
 			if _shell:
 				_magazine.visible = reloading and motion.part_shown
 		return

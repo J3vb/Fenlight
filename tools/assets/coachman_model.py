@@ -1,7 +1,6 @@
 """Coachman: full-stock side-by-side break-action with bored barrels and checkered wood.
 
-The twin barrels and forepiece are separate children of Receiver. Bolt names the
-opening lever for the existing viewmodel kick; loading remains a timed action.
+The barrel set, sight rib and forepiece share the animated hinge.
 """
 
 import gun_parts as g
@@ -10,6 +9,7 @@ BORE_Z = 0.044
 BARREL_X = 0.018
 MUZZLE_Y = 0.56
 SIGHT_Z = 0.069
+HINGE = (0, 0.042, 0.018)
 
 
 def receiver_parts(metal, black):
@@ -71,6 +71,8 @@ def barrel(m, receiver, side, metal, black):
     collar = g.lathe("ChamberBand", [(0.0175, -0.04), (0.0175, -0.031)], (x, 0, BORE_Z), black, 24)
     g.cut(collar, [g.lathe("BandCore", [(0.015, -0.042), (0.015, -0.029)], (x, 0, BORE_Z), black, 24)])
     m.join_into(tube, [collar])
+    if side < 0:
+        m.join_into(tube, rib_parts(metal, black))
     m.attach(tube, (x, -0.035, BORE_Z), receiver)
 
 
@@ -207,7 +209,6 @@ def moving_parts(m, receiver, metal, black):
             bevel=0.0008,
         )
         m.attach(trigger, (0, y, 0), receiver)
-    m.marker("Muzzle", (0, MUZZLE_Y + 0.002, BORE_Z), parent=receiver)
 
 
 def build(m) -> None:
@@ -217,11 +218,13 @@ def build(m) -> None:
     wood = m.material("Wood", m.WOOD, roughness=0.7)
     checker = m.material("WoodKnurled", m.WOOD, roughness=0.8)
     receiver, *pieces = receiver_parts(metal, black)
-    m.join_into(receiver, pieces + rib_parts(metal, black))
+    m.join_into(receiver, pieces)
+    hinge = m.marker("Hinge", HINGE, parent=receiver)
     for side in (-1, 1):
-        barrel(m, receiver, side, metal, black)
+        barrel(m, hinge, side, metal, black)
     stock_parts(m, receiver, black, wood, checker)
-    forepiece(m, receiver, metal, wood, checker)
+    forepiece(m, hinge, metal, wood, checker)
+    m.marker("Muzzle", (0, MUZZLE_Y + 0.002 - HINGE[1], BORE_Z - HINGE[2]), parent=hinge)
     moving_parts(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.078, 0.046, 0.027, 0.048, 0.0008), 0.001, 0.0262, metal)
     g.stamp(m, "coachman_2b", "Receiver", (-0.0272, -0.015, 0.019), 0.044)
