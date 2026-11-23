@@ -80,7 +80,8 @@ func _ready() -> void:
 
 func _physics_process(delta: float) -> void:
 	var frame: InputFrame = InputFrame.new()
-	frame.buttons = InputFrame.INTERACT if Input.is_action_pressed(&"interact") else 0
+	if is_instance_valid(_player) and _player.local_input.dialog_allows(InputFrame.INTERACT_HELD):
+		frame.buttons = InputFrame.INTERACT if _player.last_frame.has(InputFrame.INTERACT_HELD) else 0
 	coop_hud.apply_frame(frame, delta)
 
 

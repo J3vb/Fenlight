@@ -130,7 +130,8 @@ func test_wall_buy_sells_ammo_and_guns() -> void:
 	assert_string_contains(wall_buy.get_prompt(player), "Buy ammo for AR-17 [F]")
 	wall_buy.interact(player)
 	assert_eq(rifle.instance.ammo_reserve, rifle.data.max_reserve, "ammo refilled")
-	assert_eq(wall_buy.get_prompt(player), "AR-17 ammo full")
+	rifle.instance.ammo_in_mag = 0
+	assert_eq(wall_buy.get_prompt(player), "AR-17 reserve full")
 	assert_eq(player.wallet.points, 4400, "ammo costs half")
 	wall_buy.weapon = rifle.data.duplicate() as WeaponData
 	wall_buy.interact(player)
@@ -139,6 +140,20 @@ func test_wall_buy_sells_ammo_and_guns() -> void:
 	wall_buy.interact(player)
 	assert_eq(player.weapons.current.data, wall_buy.weapon, "new gun in hand")
 	assert_eq(player.wallet.points, 4400 - wall_buy.weapon.cost, "gun costs its WeaponData cost")
+
+
+func test_wall_buy_refills_the_held_copy_first() -> void:
+	var rack: WallBuy = level.find_child("WallBuyRifle", true, false) as WallBuy
+	var holstered: Weapon = player.weapons.current
+	holstered.instance.ammo_reserve = holstered.data.max_reserve
+	player.weapons.max_slots = 3
+	var held: Weapon = player.weapons.give(holstered.data)
+	held.instance.ammo_reserve = 0
+	player.wallet.set_points(1000)
+	assert_string_contains(rack.get_prompt(player), "Buy ammo for AR-17 [F]")
+	rack.interact(player)
+	assert_eq(held.instance.ammo_reserve, held.data.max_reserve)
+	assert_eq(player.wallet.points, 400)
 
 
 func test_free_rack_names_the_gun_traded_when_both_slots_are_full() -> void:

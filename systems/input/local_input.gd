@@ -25,7 +25,8 @@ var sensitivity_scale: float = 1.0
 
 var _look_accum: Vector2 = Vector2.ZERO
 var _pressed: int = 0
-var _input_dialog: WeakRef
+var _input_dialog: Window
+var _dismissed_buttons: int = 0
 var _crouch_on: bool = false
 var _ads_on: bool = false
 var _sprint_on: bool = false
@@ -66,18 +67,25 @@ func _on_settings_changed(section: StringName, _key: StringName, _value: Variant
 
 ## Exclusive in-match dialogs also own held actions, which Godot polls outside GUI event dispatch.
 func block_for_dialog(dialog: Window) -> void:
-	_input_dialog = weakref(dialog)
+	_input_dialog = dialog
+	dialog.tree_exiting.connect(_dialog_closed.bind(dialog), CONNECT_ONE_SHOT)
 
 
-func _dialog_blocks_input() -> bool:
-	if _input_dialog == null:
-		return false
+func _dialog_closed(dialog: Window) -> void:
+	if _input_dialog != dialog:
+		return
+	_input_dialog = null
+	_clear_toggles()
+	_pressed = 0
+	_look_accum = Vector2.ZERO
 	var actions: int = (
 		InputFrame.FIRE | InputFrame.ALT_FIRE | InputFrame.ADS | InputFrame.LETHAL | InputFrame.INTERACT_HELD
 	)
-	if _input_dialog.get_ref() == null and (_held_buttons() & actions) == 0:
-		_input_dialog = null
-	return true
+	_dismissed_buttons = (_held_buttons() & actions) | _just_pressed_buttons()
+
+
+func dialog_allows(button: int) -> bool:
+	return _input_dialog == null and (_dismissed_buttons & button) == 0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -106,7 +114,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func sample(tick: int) -> InputFrame:
 	var f: InputFrame = InputFrame.new()
 	f.tick = tick
-	if not enabled or UI.top() != &"" or _dialog_blocks_input():
+	if not enabled or UI.top() != &"" or _input_dialog != null:
 		_look_accum = Vector2.ZERO
 		_pressed = 0
 		_clear_toggles()
@@ -118,16 +126,22 @@ func sample(tick: int) -> InputFrame:
 	if invert_y:
 		f.look.y = -f.look.y
 	_look_accum = Vector2.ZERO
-	var b: int = _pressed | _held_buttons()
+	var buttons: int = _pressed | _held_buttons() | _just_pressed_buttons()
 	_pressed = 0
+	_dismissed_buttons &= buttons
+	f.buttons = buttons & ~_dismissed_buttons
+	return f
+
+
+func _just_pressed_buttons() -> int:
+	var b: int = 0
 	if Input.is_action_just_pressed(&"jump"):
 		b |= InputFrame.JUMP
 	if Input.is_action_just_pressed(&"reload"):
 		b |= InputFrame.RELOAD
 	if Input.is_action_just_pressed(&"interact"):
 		b |= InputFrame.INTERACT
-	f.buttons = b
-	return f
+	return b
 
 
 func _held_buttons() -> int:
