@@ -41,6 +41,7 @@ var _sprint_block: float = 0.0
 var _sprint_progress: float = 0.0
 var _reload_timer: float = 0.0
 var _reload_duration: float = 0.0
+var _first_round_duration: float = 0.0
 var _empty_reload: bool = false
 var _rng: RandomNumberGenerator
 var _spin_up: SpinUp = SpinUp.new()
@@ -101,7 +102,8 @@ func start_reload() -> bool:
 	_reload_timer = _reload_duration
 	if data.reload_per_round:
 		_reload_duration = RoundReload.duration(self)
-		_reload_timer = RoundReload.cycle_length(self)
+		_first_round_duration = RoundReload.cycle_length(self)
+		_reload_timer = _first_round_duration
 	if pose.motion == null:
 		pose.play_mech(data.reload_sound)
 	if (

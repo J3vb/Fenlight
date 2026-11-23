@@ -260,3 +260,27 @@ func test_coachman_keeps_the_receiver_in_frame_during_the_reload() -> void:
 		gun.pose.update(1.0)
 		var center: Vector3 = receiver.to_global(receiver.get_aabb().get_center())
 		assert_true(gun.camera.is_position_in_frustum(center), "receiver visible at %.0f%%" % (fraction * 100.0))
+
+
+func test_gaining_quickhands_mid_reload_preserves_the_active_animation_clock() -> void:
+	var quickhands: SerumData = load("res://content/serums/quickhands.tres") as SerumData
+	for id: StringName in [&"fieldhand_lever", &"brenner_trench"]:
+		var player: Player = _player_with(id)
+		var gun: Weapon = player.weapons.current
+		gun.instance.ammo_in_mag = 0
+		assert_true(gun.start_reload())
+		var first: float = gun._reload_timer
+		var later: float = gun._reload_duration
+		gun.tick(first * 0.25)
+		gun.pose.update(1.0)
+		var before: Transform3D = gun.transform
+		player.serums.append(quickhands)
+		gun.pose.update(1.0)
+		assert_true(before.is_equal_approx(gun.transform), "%s pose holds when a stat changes" % id)
+		assert_almost_eq(RoundReload.cycle_t(gun), 0.25, 0.001)
+		gun.tick(first * 0.75 + later * 0.5)
+		assert_almost_eq(RoundReload.cycle_t(gun), 0.5, 0.001, "later cycles retain the same interval")
+		RoundReload.cancel(gun)
+		gun.instance.ammo_in_mag = 0
+		assert_true(gun.start_reload())
+		assert_lt(gun._reload_timer, first, "the next reload picks up Quickhands")

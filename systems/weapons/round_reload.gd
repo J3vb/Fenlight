@@ -16,7 +16,8 @@ static func cycle_length(weapon: Weapon) -> float:
 
 ## 0 to 1 through the round now loading, for the viewmodel.
 static func cycle_t(weapon: Weapon) -> float:
-	return 1.0 - weapon._reload_timer / cycle_length(weapon)
+	var length: float = weapon._first_round_duration if weapon._empty_reload else weapon._reload_duration
+	return clampf(1.0 - weapon._reload_timer / maxf(length, 0.001), 0.0, 1.0)
 
 
 static func can_fire(weapon: Weapon) -> bool:
