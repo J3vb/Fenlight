@@ -1,4 +1,4 @@
-## Check model selection and motion on the enemy scenes at their actual gameplay times.
+## Exercise ZombieGait, ZombieStrike and ZombieReactions through the enemy scenes at their gameplay times.
 extends GutTest
 
 
