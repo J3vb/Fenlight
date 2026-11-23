@@ -66,7 +66,7 @@ Captured at player height with the power on and the existing baked lighting. The
 
 ![Eight Halcyon Labs rooms](images/halcyon-labs/rooms.jpg)
 
-The final High-quality, three-bounce GPU lightmap bake is pending.
+Halcyon Labs and Lantern Post both use their previous lightmaps. The rebuilt static meshes have new UV2 layouts, so baked shadows can fall on different faces until both maps receive their final High-quality, three-bounce GPU bake.
 
 ## Room dressing against the concepts
 
@@ -79,6 +79,8 @@ Each sheet shows the previous game capture, the current game and the concept fro
 | [Containment and access](images/halcyon-labs/room-dressing-containment.jpg) | Containment Wing snagged curtain and broken glass, Containment Ramp handrail, Vent Route inspection patch |
 
 The fixtures follow level power and Blackout rounds. The ramp has a dedicated emergency fixture before power returns. The dressing is visual and sits outside the navigation region.
+
+The room placements and hardware batches regenerate with `python tools/levels/halcyon_room_dressing.py`.
 
 To reproduce the current views, run the project’s capture scene. It writes eleven PNGs to `screenshots/room-concepts/`.
 

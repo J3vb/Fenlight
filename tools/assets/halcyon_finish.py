@@ -63,7 +63,7 @@ FAMILIES = {
     "Forklift": [("Hub*", "y", "hub"), ("Step*", "z", "deck"), ("Seat*", "*", "vinyl")],
     "FuelDrum": [("Drum", "xy", "drum"), ("Lid", "z", "brushed")],
     "GuardDesk LabBench": [
-        ("Keyboard", "z", "keyboard"),
+        ("Keyboard*", "z", "keyboard"),
         ("Switcher", "z", "console"),
         ("Phone", "z", "cassette"),
         ("Logbook", "z", "log"),

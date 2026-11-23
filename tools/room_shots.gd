@@ -49,7 +49,11 @@ func _ready() -> void:
 func _run() -> void:
 	var concepts: bool = OS.get_cmdline_user_args().has("--concepts")
 	var directory: String = CONCEPT_DIR if concepts else ROOM_DIR
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(directory))
+	var error: Error = DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(directory))
+	if error != OK:
+		push_error("Cannot create %s (%s)" % [directory, error_string(error)])
+		get_tree().quit(1)
+		return
 	var map: Node = (load(MAP) as PackedScene).instantiate()
 	add_child(map)
 	(map as Level).turn_power_on()
@@ -66,7 +70,12 @@ func _run() -> void:
 		camera.look_at_from_position(shot[1], shot[2])
 		for _i: int in 12:
 			await get_tree().process_frame
-		get_viewport().get_texture().get_image().save_png(directory.path_join("%s.png" % shot[0]))
+		var path: String = directory.path_join("%s.png" % shot[0])
+		error = get_viewport().get_texture().get_image().save_png(path)
+		if error != OK:
+			push_error("Cannot save %s (%s)" % [path, error_string(error)])
+			get_tree().quit(1)
+			return
 		var draws: int = RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME)
 		print("saved %s, draw calls %d" % [shot[0], draws])
 	map.queue_free()
