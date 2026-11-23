@@ -3,7 +3,8 @@
 ## Append --hands for close-ups of both hands in rest, walk and both attack extremes.
 extends Node3D
 
-const TYPES: Array[String] = ["shambler", "crawler", "bloater"]
+const TYPES: Array[String] = ["shambler", "shambler_guard", "bloater", "glower", "crawler"]
+const LINEUP: Array[String] = ["shambler", "crawler", "bloater"]
 const LOOK: String = "res://levels/looks/halcyon_interior.tres"
 const POSES: Array[String] = ["front", "booth", "walk", "windup", "strike"]
 const WARMUP_FRAMES: int = 12
@@ -74,17 +75,21 @@ func _run() -> void:
 	get_tree().quit()
 
 
+func _set_pose(rig: ZombieRig, kind: String, pose: String) -> void:
+	if pose == "walk":
+		rig.pose_walk(2.0, 0.5, PI / 13.0)
+	elif pose == "windup":
+		rig.pose_attack(1.0 if kind == "crawler" else ZombieRig.ATTACK_DRAW)
+	elif pose == "strike":
+		rig.pose_attack(2.0 if kind == "crawler" else 1.0)
+
+
 func _model_shots(kind: String) -> void:
 	for pose: String in POSES:
 		_clear()
 		var angle: float = 0.0 if pose == "front" else -0.5
 		var rig: ZombieRig = _place(kind, Vector3.ZERO, angle)
-		if pose == "walk":
-			rig.pose_walk(2.0, 0.5, PI / 13.0)
-		elif pose == "windup":
-			rig.pose_attack(1.0)
-		elif pose == "strike":
-			rig.pose_attack(2.0)
+		_set_pose(rig, kind, pose)
 		_camera.fov = 40.0
 		_camera.look_at_from_position(Vector3(0, 1.15, 3.2), Vector3(0, 0.85, 0))
 		if pose == "windup":
@@ -96,12 +101,7 @@ func _hand_shots(kind: String) -> void:
 	for pose: String in ["rest", "walk", "windup", "strike"]:
 		_clear()
 		var rig: ZombieRig = _place(kind, Vector3.ZERO)
-		if pose == "walk":
-			rig.pose_walk(2.0, 0.5, PI / 13.0)
-		elif pose == "windup":
-			rig.pose_attack(1.0)
-		elif pose == "strike":
-			rig.pose_attack(2.0)
+		_set_pose(rig, kind, pose)
 		await get_tree().process_frame
 		var skeleton: Skeleton3D = rig.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 		_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -117,8 +117,8 @@ func _hand_shots(kind: String) -> void:
 
 func _lineup() -> void:
 	_clear()
-	for index: int in TYPES.size():
-		_place(TYPES[index], Vector3((index - 1) * 1.6, 0, 0))
+	for index: int in LINEUP.size():
+		_place(LINEUP[index], Vector3((index - 1) * 1.6, 0, 0))
 
 
 func _silhouettes() -> void:
@@ -160,7 +160,7 @@ func _distances() -> void:
 	_clear()
 	for index: int in 24:
 		var at: Vector3 = Vector3((index % 6 - 2.5) * 1.2, 0, -floori(index / 6.0) * 1.5)
-		var rig: ZombieRig = _place(TYPES[index % 3], at)
+		var rig: ZombieRig = _place(LINEUP[index % LINEUP.size()], at)
 		rig.pose_walk(2.0, 0.5, (index % 4 + 1) * PI / 13.0)
 	for distance: int in [10, 30]:
 		_camera.look_at_from_position(Vector3(0, 1.62, distance), Vector3(0, 1.62, 0))

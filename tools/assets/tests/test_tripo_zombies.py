@@ -106,3 +106,19 @@ def test_crawler_pass_cuts_the_legs_and_caps_them_facing_out():
     assert all(f.normal.z < -0.5 for f in caps), "caps face down, out of the stump"
     mesh.free()
     assert not any(name.startswith(tripo_crawler.LEGS) for name in groups.values())
+
+
+def test_shambler_reach_shape_opens_only_the_striking_hand():
+    scene = check_models.load_glb(_model(next(row for row in ROWS if row["name"] == "shambler")))
+    body = next(obj for obj in scene if obj.name == "Body")
+    keys = body.data.shape_keys.key_blocks
+    reach = keys["ReachFingers"]
+    assert reach.relative_key == keys["Basis"] and reach.value == 0.0
+    hand = body.vertex_groups["hand_R"].index
+    travel = []
+    for vertex in body.data.vertices:
+        delta = reach.data[vertex.index].co - keys["Basis"].data[vertex.index].co
+        if delta.length > 0.0001:
+            assert any(group.group == hand and group.weight > 0 for group in vertex.groups)
+            travel.append(delta.length)
+    assert 0.03 < max(travel) < 0.09, "curled fingers release by a few centimetres"

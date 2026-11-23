@@ -20,6 +20,7 @@ import bpy
 # isort: split
 import bmesh
 import numpy
+import shambler_hand
 import tripo_crawler
 import tripo_rig
 from mathutils import Matrix, Vector
@@ -317,7 +318,7 @@ def export(objects: list, path: str) -> None:
         use_selection=True,
         export_format="GLB",
         export_yup=True,
-        export_apply=True,
+        export_apply=not any(obj.type == "MESH" and obj.data.shape_keys for obj in objects),
         export_image_format="JPEG",
         export_jpeg_quality=88,
     )
@@ -343,6 +344,8 @@ def run(args: argparse.Namespace) -> dict:
         low.name = "Body"
         keep = tripo_rig.rig(low, armature, placed, None)
         keep.append(tripo_rig.head_center_marker(keep[0], keep[2]))
+        if args.name == "shambler":
+            shambler_hand.add_reach(low, keep[0])
         if args.crawler:
             keep.append(tripo_crawler.make(keep[0], keep[1]))
     bpy.data.objects.remove(high)
