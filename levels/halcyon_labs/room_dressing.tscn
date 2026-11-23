@@ -650,6 +650,7 @@ gi_mode = 0
 visibility_range_end = 25
 material_override = SubResource("navy")
 mesh = SubResource("block")
+metadata/walk_through = "loose fabric caught in the locker door"
 
 [node name="SleeveCuff" type="MeshInstance3D" parent="GuardPost"]
 position = Vector3(20.99, 1.11, 38.35)
@@ -691,6 +692,7 @@ gi_mode = 0
 visibility_range_end = 25
 material_override = ExtResource("steel")
 mesh = SubResource("block")
+metadata/walk_through = "suspended above the fixed dining table"
 
 [node name="HeatShade0" type="MeshInstance3D" parent="MessHall"]
 position = Vector3(44.57, 2.46, 40.57)
@@ -700,6 +702,7 @@ gi_mode = 0
 visibility_range_end = 25
 material_override = SubResource("green_metal")
 mesh = SubResource("cone")
+metadata/walk_through = "suspended above the fixed dining table"
 
 [node name="HeatLamp0" type="MeshInstance3D" parent="MessHall" groups=["mains_light"]]
 position = Vector3(44.57, 2.37, 40.57)
@@ -718,6 +721,7 @@ gi_mode = 0
 visibility_range_end = 25
 material_override = SubResource("green_metal")
 mesh = SubResource("cone")
+metadata/walk_through = "suspended above the fixed dining table"
 
 [node name="HeatLamp1" type="MeshInstance3D" parent="MessHall" groups=["mains_light"]]
 position = Vector3(45.48, 2.37, 40.57)

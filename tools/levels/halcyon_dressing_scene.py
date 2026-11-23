@@ -114,12 +114,36 @@ def _resources():
 class DressingScene:
     def __init__(self):
         self.lines = []
+        self.colliders = []
         self.current = "."
         self.node("RoomDressing", "Node3D")
 
     def render(self):
         text = "\n".join(_resources() + self.lines) + "\n"
         return batch_hardware(text)
+
+    def collision_box(self, name, position, size, rotation=(0, 0, 0)):
+        self.colliders.append((name, position, size, rotation))
+
+    def render_collision(self):
+        resources = ["[gd_scene format=3]"]
+        nodes = ['[node name="RoomFixtureCollision" type="Node3D"]']
+        for name, position, size, rotation in self.colliders:
+            resources.extend(("", f'[sub_resource type="BoxShape3D" id="{name}"]', f"size = {vector(size)}"))
+            nodes.extend(
+                (
+                    "",
+                    f'[node name="{name}" type="StaticBody3D" parent="."]',
+                    f"position = {vector(position)}",
+                    "collision_mask = 0",
+                )
+            )
+            if any(rotation):
+                nodes.append(f"rotation = {vector(tuple(radians(v) for v in rotation))}")
+            nodes.extend(
+                ("", f'[node name="Shape" type="CollisionShape3D" parent="{name}"]', f'shape = SubResource("{name}")')
+            )
+        return "\n".join([*resources, "", *nodes]) + "\n"
 
     def node(self, n, t, p=None, group=None, **props):
         tail = (f' parent="{p}"' if p else "") + (f' groups=["{group}"]' if group else "")
@@ -129,7 +153,7 @@ class DressingScene:
         self.current = n
         self.node(n, "Node3D", ".")
 
-    def shape(self, n, kind, p, size, m, rot=(0, 0, 0), pwr=False, reach=25):
+    def shape(self, n, kind, p, size, m, rot=(0, 0, 0), pwr=False, reach=25, walk_through=None):
         props = {"position": vector(p)}
         if any(rot):
             props["rotation"] = vector(tuple(radians(v) for v in rot))
@@ -141,6 +165,8 @@ class DressingScene:
             material_override=resource(m),
             mesh=resource(kind),
         )
+        if walk_through:
+            props["metadata/walk_through"] = f'"{walk_through}"'
         self.node(
             n,
             "MeshInstance3D",
@@ -149,7 +175,9 @@ class DressingScene:
             **props,
         )
 
-    def box(self, n, p, size, m, rot=(0, 0, 0), **kw):
+    def box(self, n, p, size, m, rot=(0, 0, 0), solid=False, **kw):
+        if solid:
+            self.collision_box(n, p, size, rot)
         self.shape(n, "block", p, size, m, rot, **kw)
 
     def rod(self, n, p, size, m, rot=(0, 0, 0), **kw):

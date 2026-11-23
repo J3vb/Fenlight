@@ -72,6 +72,8 @@
 [ext_resource type="Texture2D" path="res://assets/textures/halcyon/painted_metal_normal.png" id="painted_metal_normal"]
 [ext_resource type="Script" path="res://systems/level/blackout_dimmer.gd" id="blackout_dimmer"]
 
+[ext_resource type="PackedScene" path="res://levels/halcyon_labs/room_fixture_collision.tscn" id="fixture_collision"]
+
 [sub_resource type="NavigationMesh" id="navmesh"]
 resource_local_to_scene = true
 geometry_parsed_geometry_type = 1
@@ -136,6 +138,8 @@ navigation_mesh = SubResource("navmesh")
 [node name="Blockout" parent="NavigationRegion3D" instance=ExtResource("blockout")]
 
 [node name="Props" type="Node3D" parent="NavigationRegion3D"]
+
+[node name="RoomFixtureCollision" parent="NavigationRegion3D" instance=ExtResource("fixture_collision")]
 
 [node name="TruckFire" type="OmniLight3D" parent="NavigationRegion3D/Props"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 29, 3.2, 52)

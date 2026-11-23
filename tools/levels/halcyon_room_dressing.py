@@ -57,7 +57,14 @@ def guard_post(scene):
     scene.rod("TaskBulb", (17.70, 1.35, 40.15), (0.15, 0.035, 0.14), "sodium_lamp", (12, 0, -18), pwr=True)
     scene.light("DeskPool", (17.46, 1.42, 40.56), warm, 0.85, 4.3)
     scene.floor("ClippedRoster", (16.23, 0.772, 40.30), (0.31, 0.21), "log", 8)
-    scene.box("CaughtSleeve", (21.03, 1.29, 38.29), (0.07, 0.39, 0.17), "navy", (-18, 0, 10))
+    scene.box(
+        "CaughtSleeve",
+        (21.03, 1.29, 38.29),
+        (0.07, 0.39, 0.17),
+        "navy",
+        (-18, 0, 10),
+        walk_through="loose fabric caught in the locker door",
+    )
     scene.box("SleeveCuff", (20.99, 1.11, 38.35), (0.077, 0.055, 0.17), "teal", (-18, 0, 10))
 
 
@@ -66,9 +73,22 @@ def mess_hall(scene):
     # Table service under a short suspended twin-bulb warm rail.
     for i, x in enumerate((44.39, 45.65)):
         scene.bar(f"HeatRailDrop{i}", (x, 5.82, 40.57), (x, 2.60, 40.57), 0.025, "pipe")
-    scene.box("HeatRail", (45.02, 2.57, 40.57), (1.38, 0.061, 0.11), "steel")
+    scene.box(
+        "HeatRail",
+        (45.02, 2.57, 40.57),
+        (1.38, 0.061, 0.11),
+        "steel",
+        walk_through="suspended above the fixed dining table",
+    )
     for i, x in enumerate((44.57, 45.48)):
-        scene.shape(f"HeatShade{i}", "cone", (x, 2.46, 40.57), (0.28, 0.17, 0.28), "green_metal")
+        scene.shape(
+            f"HeatShade{i}",
+            "cone",
+            (x, 2.46, 40.57),
+            (0.28, 0.17, 0.28),
+            "green_metal",
+            walk_through="suspended above the fixed dining table",
+        )
         scene.rod(f"HeatLamp{i}", (x, 2.37, 40.57), (0.21, 0.022, 0.21), "sodium_lamp", pwr=True)
 
     scene.box("MenuFrame", (49.0, 3.12, 30.25), (3.08, 1.12, 0.12), "green_metal")
@@ -96,7 +116,7 @@ def main_corridor(scene):
     scene.card("LabsArrow", (24.79, 1.64, 29.762), (2.5, 0.55), "wayfinding", (0, 180, 0))
     for i, x in enumerate((28.9, 31.0)):
         scene.card(f"ReplacementSheet{i}", (x, 0.81, 29.758), (1.28, 0.84), "patch", (0, 180, i * 2))
-    scene.box("JunctionBox", (21.87, 1.07, 26.30), (0.53, 0.52, 0.15), "green_metal")
+    scene.box("JunctionBox", (21.87, 1.07, 26.30), (0.53, 0.52, 0.15), "green_metal", solid=True)
     scene.card("JunctionCover", (21.87, 1.07, 26.385), (0.47, 0.46), "service")
     for i, x in enumerate((21.79, 21.94)):
         scene.rod(f"JunctionDrop{i}", (x, 2.04, 26.32), (0.038, 1.4, 0.038), "pipe")
@@ -112,7 +132,7 @@ def generator_hall(scene):
     # Service raceway and a low wall bumper make the right perimeter read across the aisle.
     for i, y in enumerate((0.69, 0.92)):
         scene.bar(f"PlantBumper{i}", (27.55, y, 14.6), (27.55, y, 23.15), 0.08, "pipe")
-    scene.box("PlantPullBox", (27.63, 1.67, 20.32), (0.24, 1.09, 0.86), "green_metal")
+    scene.box("PlantPullBox", (27.63, 1.67, 20.32), (0.24, 1.09, 0.86), "green_metal", solid=True)
     scene.card("PullBoxCover", (27.49, 1.67, 20.32), (0.80, 1.03), "service", (0, -90, 0))
 
     scene.card("PlantStencil", (27.778, 2.96, 16.48), (3.8, 1.65), "generator", (0, -90, 0))
@@ -123,12 +143,14 @@ def generator_hall(scene):
     scene.box("PlantLampHousing", (27.65, 4.13, 16.48), (0.22, 0.13, 1.2), "steel")
     scene.box("PlantLampLens", (27.60, 4.055, 16.48), (0.16, 0.035, 1.04), "fluorescent", pwr=True)
     scene.light("StencilWash", (26.98, 3.75, 16.48), white, 2.4, 7.5)
-    scene.box("RemovedCover", (14.42, 0.62, 14.46), (1.18, 1.15, 0.068), "steel", (-14, 0, -3))
+    scene.box("RemovedCover", (14.42, 0.62, 14.46), (1.18, 1.15, 0.068), "steel", (-14, 0, -3), solid=True)
     scene.card("CoverLouvers", (14.42, 0.628, 14.501), (1.13, 1.07), "service", (-14, 0, -3))
     scene.box("DripTray", (13.72, 0.073, 14.62), (0.67, 0.081, 0.40), "steel")
     scene.floor("TrayOil", (13.72, 0.119, 14.62), (0.66, 0.37), "spill")
     scene.box("FoldedShopRag", (14.85, 0.057, 14.86), (0.42, 0.09, 0.22), "navy", (0, 16, -6))
     scene.floor("ServiceGrate", (15.02, 0.014, 15.19), (2.52, 0.265), "drain")
+    # One box covers the portable lamp and its folding stand beside the generator.
+    scene.collision_box("PortableWorkLamp", (13.23, 0.39, 14.77), (0.45, 0.73, 0.30))
     scene.bar("WorkStandA", (13.04, 0.04, 14.66), (13.22, 0.61, 14.76), 0.046, "ochre")
     scene.bar("WorkStandB", (13.44, 0.04, 14.72), (13.22, 0.61, 14.76), 0.046, "ochre")
     scene.box("PortableHousing", (13.23, 0.59, 14.77), (0.43, 0.33, 0.16), "ochre", (-10, -16, 0))
@@ -203,7 +225,7 @@ def containment_ramp(scene):
         y = 1.136 - (x - 52) * 0.375
         scene.bar(f"WallStay{i}", (x, y - 0.12, 19.79), (x, y, 19.63), 0.047, "pipe")
     scene.card("LowerLevelArrow", (56.91, 0.37, 19.775), (1.38, 0.79), "descent", (0, 180, 0))
-    scene.box("EmergencyBacking", (56.86, -0.99, 19.71), (0.52, 0.25, 0.16), "green_metal")
+    scene.box("EmergencyBacking", (56.86, -0.99, 19.71), (0.52, 0.25, 0.16), "green_metal", solid=True)
     scene.box("EmergencyLens", (56.86, -0.99, 19.61), (0.41, 0.16, 0.06), "sodium_lamp")
     for i, x in enumerate((56.72, 56.85, 56.98)):
         scene.box(f"EmergencyCage{i}", (x, -0.99, 19.56), (0.018, 0.19, 0.02), "steel")
@@ -265,7 +287,7 @@ def cold_room(scene):
     scene.box("LogIndicatorLens", (55.21, 2.39, 50.655), (0.14, 0.11, 0.046), "sodium_lamp", pwr=True)
     scene.light("LogPool", (55.21, 2.24, 50.38), warm, 0.48, 2.75)
 
-    scene.box("ColdShelf", (56.57, 1.81, 48.98), (0.43, 0.066, 2.25), "steel")
+    scene.box("ColdShelf", (56.57, 1.81, 48.98), (0.43, 0.066, 2.25), "steel", solid=True)
     for i, z in enumerate((48.13, 49.80)):
         scene.bar(f"ShelfBracket{i}", (56.76, 1.48, z), (56.39, 1.78, z), 0.042, "pipe")
     for i, (z, h) in enumerate(((48.25, 0.27), (48.91, 0.35), (49.41, 0.25))):
@@ -275,7 +297,7 @@ def cold_room(scene):
     scene.card("ShelfRime", (56.34, 1.81, 48.99), (2.18, 0.24), "frost", (0, -90, 0))
     scene.card("TemperatureLog", (55.2, 1.77, 50.777), (0.45, 0.61), "log", (0, 180, 0))
     scene.box("SleeveClip", (55.2, 2.13, 50.76), (0.27, 0.045, 0.038), "brass")
-    scene.box("ShelfLightBack", (56.42, 1.72, 49.16), (0.15, 0.09, 0.66), "steel")
+    scene.box("ShelfLightBack", (56.42, 1.72, 49.16), (0.15, 0.09, 0.66), "steel", solid=True)
     scene.box("ShelfLens", (56.40, 1.67, 49.16), (0.103, 0.035, 0.62), "fluorescent", pwr=True)
     scene.light("ColdShelfPool", (56.01, 1.50, 49.04), cold, 0.76, 4.5)
 
@@ -293,9 +315,10 @@ def build():
     containment_ramp(scene)
     vent_route(scene)
     cold_room(scene)
-    return scene.render()
+    return {"room_dressing.tscn": scene.render(), "room_fixture_collision.tscn": scene.render_collision()}
 
 
 if __name__ == "__main__":
-    output = Path(__file__).resolve().parents[2] / "levels/halcyon_labs/room_dressing.tscn"
-    output.write_text(build(), encoding="utf-8")
+    directory = Path(__file__).resolve().parents[2] / "levels/halcyon_labs"
+    for name, contents in build().items():
+        (directory / name).write_text(contents, encoding="utf-8")
