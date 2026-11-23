@@ -66,7 +66,7 @@ func get_prompt(viewer: Player) -> String:
 	if viewer != player or not _can_reach(viewer):
 		return ""
 	if pack.is_full():
-		return "Pack full"
+		return "Swap for %s [F]" % item_name(item) if viewer.session and viewer.session.profile else "Pack full"
 	return (
 		"%s · %s · iLvl %d [F]" % [item_name(item), String(item.get("rar", "common")).capitalize(), item.get("ilvl", 1)]
 	)
@@ -75,10 +75,8 @@ func get_prompt(viewer: Player) -> String:
 func interact(viewer: Player, _facts: Dictionary = {}) -> void:
 	if viewer != player or is_queued_for_deletion() or not _can_reach(viewer):
 		return
-	if pack.is_full():
-		return
 	var profile: CharacterProfile = viewer.session.profile if viewer.session else null
-	if profile and pack.items.size() >= profile.free_stash_slots():
+	if profile and (pack.is_full() or pack.items.size() >= profile.free_stash_slots()):
 		if not has_node(^"StashExchange"):
 			var exchange: StashExchange = StashExchange.new()
 			exchange.name = "StashExchange"

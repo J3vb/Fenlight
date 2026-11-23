@@ -326,3 +326,20 @@ func test_run_exit_while_an_exchange_is_open_keeps_the_stored_item() -> void:
 	assert_eq(session.profile.stash[0].uid, "0")
 	assert_eq(CharacterProfile.load_or_create(ID).stash[0].uid, "0")
 	assert_true(session.loot.pack.items.is_empty())
+
+
+func test_full_pack_can_exchange_its_last_reserved_slot_without_discarding_stash() -> void:
+	for slot: int in CharacterProfile.STASH_SIZE - Pack.CAPACITY:
+		session.profile.stash[slot] = {"uid": str(slot), "base": "vest_light", "rar": "common"}
+	for slot: int in Pack.CAPACITY:
+		session.loot.pack.add({"uid": "pack%d" % slot, "base": "vest_light", "rar": "common"})
+	session.loot.send_drop(1, {"uid": "new", "base": "vest_light", "rar": "rare"}, player.global_position)
+	var drop: LootDrop = session.loot.get_child(0) as LootDrop
+	assert_string_contains(drop.get_prompt(player), "[F]")
+	drop.interact(player)
+	var dialog: StashExchange = drop.get_node("StashExchange") as StashExchange
+	assert_eq(dialog._choices.item_count, Pack.CAPACITY + 1)
+	dialog._choices.select(3)
+	dialog.confirmed.emit()
+	assert_eq(session.loot.pack.items[2].uid, "new")
+	assert_eq(session.profile.free_stash_slots(), Pack.CAPACITY)

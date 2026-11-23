@@ -26,7 +26,8 @@ func offer(drop: LootDrop, profile: CharacterProfile) -> void:
 	box.add_child(_detail)
 	_choices.add_item("Choose an item to give up")
 	_list_items(drop.pack.items, false)
-	_list_items(profile.stash, true)
+	if not drop.pack.is_full():
+		_list_items(profile.stash, true)
 	_choices.item_selected.connect(_selected)
 	_selected(0)
 	ok_button_text = "Confirm exchange"
@@ -55,7 +56,7 @@ func _describe(item: Dictionary) -> String:
 func _selected(index: int) -> void:
 	get_ok_button().disabled = index == 0
 	if index == 0:
-		_detail.text = "Your stash has no unreserved space."
+		_detail.text = "Your Pack is full." if _drop.pack.is_full() else "Your stash has no unreserved space."
 		return
 	var choice: Dictionary = _choices.get_item_metadata(index)
 	_detail.text = (

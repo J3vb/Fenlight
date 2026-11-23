@@ -139,6 +139,16 @@ func test_wall_buy_sells_ammo_and_guns() -> void:
 	assert_eq(player.wallet.points, 4400 - wall_buy.weapon.cost, "gun costs its WeaponData cost")
 
 
+func test_free_rack_names_the_gun_traded_when_both_slots_are_full() -> void:
+	var rack: WallBuy = level.find_child("CryoRack", true, false) as WallBuy
+	assert_eq(rack.get_prompt(player), "Swap AR-17 for Cryo Lance [F]")
+	var balance: int = player.wallet.points
+	rack.interact(player)
+	assert_eq(player.weapons.current.data.id, &"cryo_lance")
+	assert_eq(player.wallet.points, balance)
+	assert_eq(rack.get_prompt(player), "")
+
+
 func test_brenner_wall_buy_sells_the_shotgun() -> void:
 	var wall_buy: WallBuy = level.find_child("WallBuyBrennerTrench", true, false) as WallBuy
 	assert_not_null(wall_buy, "Brenner Trench is a real wall-buy")
