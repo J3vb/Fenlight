@@ -2,6 +2,7 @@
 forklift. Same rules as prop_models.py.
 """
 
+import bpy
 import prop_models as p
 
 
@@ -94,11 +95,27 @@ def build_forklift() -> None:
     from build_models import box, cylinder
 
     m = {**p._mats(), **_dock()}
-    box("Body", (1.3, 1.1, 0.75), (0.45, 0, 0.6), m["sodium"], bevel=0.05)
-    box("Counterweight", (0.35, 1.1, 0.6), (1.03, 0, 0.55), m["dark"], bevel=0.04)
+    box("Body", (0.91, 1.06, 0.75), (0.255, 0, 0.6), m["sodium"], bevel=0.05)
+    box("Counterweight", (0.63, 1.12, 0.69), (0.90, 0, 0.61), m["sodium"], bevel=0.15)
+    box("RearBumper", (0.20, 0.96, 0.12), (1.11, 0, 0.34), m["dark"], bevel=0.04)
+    column = box("SteeringColumn", (0.12, 0.12, 0.41), (-0.01, 0, 1.12), m["dark"], bevel=0.02)
+    column.rotation_euler.y = 0.36
+    bpy.ops.mesh.primitive_torus_add(
+        major_segments=16,
+        minor_segments=6,
+        major_radius=0.15,
+        minor_radius=0.021,
+        location=(0.06, 0, 1.31),
+        rotation=(0, 0.70, 0),
+    )
+    wheel = bpy.context.object
+    wheel.name = "SteeringWheel"
+    wheel.data.materials.append(m["dark"])
+    box("WheelSpoke", (0.035, 0.29, 0.027), (0.06, 0, 1.31), m["steel"])
     box("Seat", (0.4, 0.45, 0.12), (0.55, 0, 1.03), m["dark"])
     box("SeatBack", (0.08, 0.45, 0.4), (0.78, 0, 1.25), m["dark"])
     for y in (-0.5, 0.5):
+        box(f"Step{y}", (0.49, 0.13, 0.075), (0.34, y, 0.40), m["dark"], bevel=0.016)
         box(f"GuardPost{y}", (0.05, 0.05, 1.25), (0.05, y, 1.6), m["dark"])
         box(f"GuardPostRear{y}", (0.05, 0.05, 1.25), (0.95, y, 1.6), m["dark"])
         box(f"Mast{y}", (0.08, 0.1, 2.15), (-0.32, y * 0.6, 1.08), m["steel"])
@@ -109,6 +126,7 @@ def build_forklift() -> None:
     for x, r in ((-0.05, 0.25), (0.95, 0.22)):
         for y in (-0.52, 0.52):
             cylinder(f"Wheel{x}{y}", r, 0.18, (x, y, r), m["dark"], axis="y")
+            cylinder(f"Hub{x}{y}", r * 0.61, 0.026, (x, y * 1.18, r), m["steel"], axis="y")
     p._merge("Forklift")
 
 

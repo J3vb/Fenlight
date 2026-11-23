@@ -70,26 +70,52 @@ def _merge(name: str) -> None:
         v.co.z += shift[2]
 
 
+def _curled_specimen(mat) -> None:
+    from mathutils import Vector
+
+    _blob("Head", 0.15, (0.055, -0.025, 1.76), mat, squash=(0.94, 0.87, 1.06))
+    torso = _blob("Torso", 0.18, (-0.10, 0.02, 1.48), mat, squash=(0.89, 0.72, 1.42))
+    torso.rotation_euler.y = 0.35
+    for side in (-1, 1):
+        y = 0.095 * side
+        shoulder, elbow, wrist = (-0.045, y, 1.62), (0.035, y * 1.4, 1.43), (0.17, y, 1.54)
+        hip, knee, ankle = (-0.15, y, 1.30), (0.16, y * 1.2, 1.39), (0.085, y, 1.10 + side * 0.034)
+        for name, start, end, radius in (
+            ("UpperArm", shoulder, elbow, 0.056),
+            ("Forearm", elbow, wrist, 0.045),
+            ("Thigh", hip, knee, 0.081),
+            ("Shin", knee, ankle, 0.054),
+        ):
+            delta = Vector(end) - Vector(start)
+            segment = _blob(
+                f"{name}{side}",
+                radius,
+                (Vector(start) + Vector(end)) / 2,
+                mat,
+                squash=(1, 1, delta.length / (2 * radius) + 0.42),
+            )
+            segment.rotation_euler = delta.to_track_quat("Z", "Y").to_euler()
+        _blob(f"Foot{side}", 0.057, (ankle[0] + 0.035, y, ankle[2]), mat, squash=(1.35, 0.76, 0.70))
+
+
 def build_specimen_tank() -> None:
     """Cold tank: steel base and cap, glass tube, glowing fluid with a curled host inside. Box 1.2 x 1.2 x 2.7."""
-    from build_models import limb
+    from build_models import material, srgb
 
     m = _mats()
+    liquid = material("IntactTankFluid", srgb("#8DFF3A"), roughness=0.2, glow=0.25)
+    liquid.node_tree.nodes["Principled BSDF"].inputs["Alpha"].default_value = 0.30
     _cyl("Base", 0.58, 0.36, (0, 0, 0), m["steel"])
-    _cyl("BaseLip", 0.5, 0.04, (0, 0, 0.36), m["dark"])
+    _cyl("BaseLip", 0.5, 0.05, (0, 0, 0.36), m["dark"])
     _cyl("Tube", 0.45, 2.0, (0, 0, 0.4), m["glass"])
-    _cyl("FluidCore", 0.42, 1.8, (0, 0, 0.45), m["fluid"])
-    _cyl("CapLip", 0.5, 0.04, (0, 0, 2.4), m["dark"])
+    _cyl("FluidCore", 0.42, 1.8, (0, 0, 0.45), liquid)
+    _cyl("CapLip", 0.5, 0.05, (0, 0, 2.39), m["dark"])
     _cyl("Cap", 0.58, 0.26, (0, 0, 2.44), m["steel"])
-    for i in range(3):
-        a = math.radians(30 + i * 120)
-        _cyl(f"Feed{i}", 0.03, 2.0, (0.53 * math.cos(a), 0.53 * math.sin(a), 0.4), m["dark"], verts=8)
-    _blob("Head", 0.11, (0.02, -0.04, 1.62), m["dark"])
-    _blob("Torso", 0.16, (0.0, 0.02, 1.3), m["dark"], squash=(1.0, 0.75, 1.5))
-    limb("ArmL", (0.14, 0.0, 1.48), (0.12, -0.14, 1.15), 0.045, m["dark"])
-    limb("ArmR", (-0.14, 0.0, 1.48), (-0.08, -0.16, 1.2), 0.045, m["dark"])
-    limb("LegL", (0.07, 0.03, 1.05), (0.1, -0.12, 0.78), 0.06, m["dark"])
-    limb("LegR", (-0.07, 0.03, 1.05), (-0.06, 0.06, 0.74), 0.06, m["dark"])
+    for side in (-1, 1):
+        _cyl(f"Return{side}", 0.045, 2.12, (side * 0.49, 0.04, 0.34), m["dark"], verts=10)
+        for z in (0.36, 1.30, 2.37):
+            _cyl(f"Collar{side}_{z}", 0.065, 0.08, (side * 0.49, 0.04, z), m["steel"], verts=10)
+    _curled_specimen(m["dark"])
     _merge("SpecimenTank")
 
 

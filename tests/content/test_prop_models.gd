@@ -96,3 +96,14 @@ func test_library_slots_load() -> void:
 	for slot: String in ["Stone", "Tile", "Enamel", "Ice", "Burlap", "Beacon"]:
 		assert_true(IMPORTER.SHARED.has(slot), slot + " is a shared slot")
 		assert_true(load(IMPORTER.SHARED[slot]) is Material, slot + " loads as a material")
+
+
+func test_intact_tank_keeps_its_specimen_visible_through_the_fluid() -> void:
+	var mesh: Mesh = _meshes("res://assets/models/props/specimen_tank.glb")[0].mesh
+	var fluid: StandardMaterial3D = load(IMPORTER.SHARED["IntactTankFluid"]) as StandardMaterial3D
+	var surfaces: Array[Material] = []
+	for i: int in mesh.get_surface_count():
+		surfaces.append(mesh.surface_get_material(i))
+	assert_has(surfaces, fluid, "the intact tank uses the translucent liquid")
+	assert_eq(fluid.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA)
+	assert_between(fluid.albedo_color.a, 0.05, 0.5, "the host shows through tinted liquid")

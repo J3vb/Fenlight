@@ -129,8 +129,29 @@ def build_gate_tunnel() -> None:
         _bollard(f"Bollard{k}", (s * 3.65, face - 0.6), m)
         corner = [(s * 3.2, 5.45), (s * 3.2, 4.45), (s * 2.2, 5.45)]
         tb._prism_y(f"MouthCorner{k}", corner if s > 0 else corner[::-1], face, 2.0, m["concrete"])
-    _box("Lintel", (10.0, 2.0, 3.6), (0, face + 1.0, 7.2), m["concrete"], 0.04)
+    # Inset the header between three bevelled precast sections and a cast sill.
+    for k, x in enumerate((-4.12, 0, 4.12)):
+        width = 1.73 if k != 1 else 6.46
+        _box(f"Lintel{k}", (width, 2.0, 3.6), (x, face + 1.0, 7.2), m["concrete"], 0.045)
+    for x in (-3.78, 2.98):
+        _box(f"SignReveal{x}", (0.15, 0.29, 1.93), (x, face - 0.07, 7.3), m["concrete"], 0.025)
+    _box("SignHood", (6.92, 0.42, 0.13), (-0.4, face - 0.11, 8.23), m["concrete"], 0.025)
     _box("LintelSnow", (10.1, 2.1, 0.16), (0, face + 1.0, 9.06), m["snow"], 0.06)
+    drift = [
+        (-4.85, 8.99),
+        (-3.9, 8.91),
+        (-2.8, 8.96),
+        (-1.9, 8.90),
+        (-1.25, 9.02),
+        (0.8, 9.01),
+        (1.55, 8.94),
+        (2.8, 8.97),
+        (3.65, 8.89),
+        (4.9, 9.02),
+        (4.9, 9.10),
+        (-4.85, 9.10),
+    ]
+    tb._prism_y("WindLip", drift, face - 0.064, 0.18, m["snow"])
     _box("SignPanel", (6.6, 0.1, 1.7), (-0.4, face - 0.05, 7.3), m["iron"], 0.02)
     _box("SignLedge", (7.0, 0.3, 0.12), (-0.4, face - 0.12, 6.4), m["concrete"])
     _box("SignLedgeSnow", (6.9, 0.3, 0.05), (-0.4, face - 0.12, 6.48), m["snow"])

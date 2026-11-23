@@ -9,6 +9,7 @@ all four stalls.
 import math
 
 import bpy
+import mission_print
 import prop_models as p
 import town_buildings as tb
 from town_buildings import _box
@@ -96,17 +97,28 @@ def build_missions_board() -> None:
     for k, x in enumerate((-1.4, 1.4)):
         _box(f"Leg{k}", (0.14, 0.14, 2.4), (x, 0.05, 1.2), m["dark"])
     _box("Board", (2.9, 0.08, 1.7), (0, 0.05, 1.45), m["dark"], 0.01)
-    _box("Map", (1.2, 0.02, 0.85), (-0.55, -0.01, 1.6), m["paper"])
-    notes = ((0.45, 1.95), (0.85, 1.85), (1.2, 1.95), (0.5, 1.4), (0.95, 1.3), (1.25, 1.45), (-1.25, 0.95), (0.7, 0.85))
-    for k, (x, z) in enumerate(notes):
-        tilt = (k % 3 - 1) * 0.08
-        _box(f"Note{k}", (0.24, 0.015, 0.3), (x, -0.015, z), m["paper"], turn=(0, tilt, 0))
-    for k, (x, z) in enumerate(((-0.95, 1.0), (-0.3, 0.95), (0.15, 1.05))):
-        _box(f"Photo{k}", (0.22, 0.015, 0.17), (x, -0.015, z), m["paper"])
+    ink = mission_print.printed_material()
+    papers = [
+        ("Map", -0.52, 1.60, 1.52, 1.12, -0.025, mission_print.CHART),
+        ("ReportA", 0.60, 1.74, 0.42, 0.58, -0.07, mission_print.REPORT),
+        ("ReportB", 1.13, 1.23, 0.39, 0.51, 0.08, mission_print.REPORT),
+        ("PhotoA", -0.84, 0.85, 0.43, 0.33, 0.09, mission_print.PHOTOS[0]),
+        ("PhotoB", -0.20, 0.87, 0.44, 0.34, -0.08, mission_print.PHOTOS[1]),
+        ("PhotoC", 1.12, 1.92, 0.42, 0.32, 0.06, mission_print.PHOTOS[2]),
+    ]
+    for name, x, z, w, h, tilt, region in papers:
+        size = (w, 0.015, h)
+        paper = _box(name, size, (x, -0.015, z), ink, turn=(0, tilt, 0))
+        mission_print.sheet(paper, size, region)
+        for side in (-1, 1) if name == "Map" else (0,):
+            px = x + side * (w / 2 - 0.04) + math.sin(tilt) * h * 0.42
+            p._blob(f"{name}Pin{side}", 0.020, (px, -0.031, z + h * 0.42), m["dark"], squash=(1, 0.6, 1))
     _box("Cap", (3.2, 0.42, 0.08), (0, 0.0, 2.38), m["dark"], 0.01, turn=(math.radians(-8), 0, 0))
     _box("CapSnow", (3.05, 0.36, 0.08), (0, 0.0, 2.45), m["snow"], 0.03, turn=(math.radians(-8), 0, 0))
     _box("LampArm", (0.04, 0.3, 0.04), (0, -0.12, 2.28), m["dark"])
     _box("LampBulb", (0.14, 0.1, 0.1), (0, -0.28, 2.22), m["bulb"])
+    p._merge("MissionsBoard")
+    bpy.context.active_object.data.uv_layers[0].name = "PrintLayout"
 
 
 def build_trader_goods() -> None:
@@ -196,7 +208,7 @@ def build_tech_desk() -> None:
 MODELS = {
     "stall_frame": ("town/stall_frame.glb", tb._merged(build_stall_frame, "StallFrame")),
     "stall_sign": ("town/stall_sign.glb", tb._merged(build_stall_sign, "StallSign")),
-    "missions_board": ("town/missions_board.glb", tb._merged(build_missions_board, "MissionsBoard")),
+    "missions_board": ("town/missions_board.glb", build_missions_board),
     "trader_goods": ("town/trader_goods.glb", tb._merged(build_trader_goods, "TraderGoods")),
     "gun_wall": ("town/gun_wall.glb", tb._merged(build_gun_wall, "GunWall")),
     "workbench": ("town/workbench.glb", tb._merged(build_workbench, "Workbench")),
