@@ -1,0 +1,12 @@
+[gd_resource type="ORMMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/textures/halcyon/facility_albedo.png" id="paint"]
+[ext_resource type="Texture2D" path="res://assets/textures/halcyon/facility_orm.png" id="orm"]
+[ext_resource type="Texture2D" path="res://assets/textures/halcyon/facility_normal.png" id="normal"]
+
+[resource]
+vertex_color_use_as_albedo = true
+albedo_texture = ExtResource("paint")
+orm_texture = ExtResource("orm")
+normal_enabled = true
+normal_texture = ExtResource("normal")

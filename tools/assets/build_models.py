@@ -105,10 +105,10 @@ def box(name: str, size: tuple, at: tuple, mat, bevel: float = 0.0, parent=None)
 AXIS_TURN = {"x": (0, 1.5708, 0), "y": (1.5708, 0, 0), "z": (0, 0, 0)}
 
 
-def cylinder(name: str, radius: float, length: float, at: tuple, mat, parent=None, axis: str = "y"):
+def cylinder(name: str, radius: float, length: float, at: tuple, mat, parent=None, axis: str = "y", vertices: int = 24):
     """A cylinder along `axis`; the default +Y is the gun's forward axis."""
     turn = AXIS_TURN[axis]
-    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=radius, depth=length, location=at, rotation=turn)
+    bpy.ops.mesh.primitive_cylinder_add(vertices=vertices, radius=radius, depth=length, location=at, rotation=turn)
     obj = bpy.context.active_object
     obj.name = name
     bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
@@ -300,7 +300,7 @@ def export(path: str) -> None:
         export_yup=True,
         export_apply=True,
         export_vertex_color="ACTIVE",
-        export_tangents=bpy.data.materials.get("GeneratorFinish") is not None,
+        export_tangents=bpy.context.scene.get("export_tangents", False),
     )
     if metadata is not None:
         with open(os.path.join(os.path.dirname(path), "player_arm_grips.json"), "w", encoding="utf-8") as output:

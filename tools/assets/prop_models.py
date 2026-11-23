@@ -53,11 +53,15 @@ def _blob(name: str, radius: float, at: tuple, mat, squash: tuple = (1, 1, 1)):
 
 def _merge(name: str) -> None:
     """Joins every mesh into one object called `name` and puts the origin at the bottom centre."""
+    import halcyon_finish
     from build_models import join_into
 
     objs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    mapped = halcyon_finish.apply(name, objs)
     target = objs[0]
     join_into(target, objs[1:])
+    if mapped:
+        target.data.uv_layers[0].name = "PrintLayout"
     target.name = name
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     pts = [target.matrix_world @ v.co for v in target.data.vertices]

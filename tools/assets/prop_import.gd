@@ -15,6 +15,7 @@ const SHARED: Dictionary = {
 	"Fluid": "res://levels/materials/specimen_tank.tres",
 	"IntactTankFluid": "res://levels/materials/intact_tank_fluid.tres",
 	"JarFluid": "res://levels/materials/jar_fluid.tres",
+	"FacilityFinish": "res://levels/materials/facility_finish.tres",
 	"GeneratorFinish": "res://levels/materials/generator_finish.tres",
 	"CordonPrint": "res://levels/materials/cordon_print.tres",
 	"Paper": "res://levels/materials/paper.tres",

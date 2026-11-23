@@ -57,6 +57,7 @@ def _project(part):
 def apply():
     from build_models import material
 
+    bpy.context.scene["export_tangents"] = True
     mat = material("GeneratorFinish", (1, 1, 1, 1))
     tree = mat.node_tree
     shader = tree.nodes["Principled BSDF"]

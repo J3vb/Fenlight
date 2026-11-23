@@ -120,3 +120,22 @@ func test_generator_import_keeps_its_surface_maps() -> void:
 		assert_not_null(finish.albedo_texture, "printed panel art loads")
 		assert_not_null(finish.orm_texture, "paint and bare steel have different sheen")
 		assert_true(finish.normal_enabled and finish.normal_texture != null, "surface relief loads")
+
+
+func test_dock_pair_uses_the_facility_atlas_in_game() -> void:
+	var finish: ORMMaterial3D = load(IMPORTER.SHARED["FacilityFinish"]) as ORMMaterial3D
+	assert_not_null(finish)
+	if finish == null:
+		return
+	assert_not_null(finish.albedo_texture, "freight and transport markings")
+	assert_not_null(finish.orm_texture, "separate roughness and metalness")
+	assert_true(finish.normal_enabled and finish.normal_texture != null, "surface relief")
+	for id: String in ["supply_truck", "crate_stack"]:
+		var mesh: Mesh = _meshes("res://assets/models/props/%s.glb" % id)[0].mesh
+		assert_eq(mesh.get_surface_count(), 1, id)
+		assert_eq(mesh.surface_get_material(0), finish, id)
+		var uv: PackedVector2Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_TEX_UV]
+		var tiles: Dictionary = {}
+		for point: Vector2 in uv:
+			tiles[Vector2i((point * 8.0).floor())] = true
+		assert_gte(tiles.size(), 4, id + " uses multiple authored regions")

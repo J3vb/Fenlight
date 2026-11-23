@@ -17,6 +17,7 @@
 [ext_resource type="Texture2D" path="res://assets/textures/story/wick_symbol.png" id="wick_symbol"]
 [ext_resource type="Texture2D" path="res://assets/textures/story/leak_pool.png" id="leak_pool"]
 [ext_resource type="Texture2D" path="res://assets/textures/story/leak_glow.png" id="leak_glow"]
+[ext_resource type="Texture2D" path="res://assets/textures/halcyon/vapor_wisp.png" id="vapor"]
 
 [sub_resource type="CylinderMesh" id="base_mesh"]
 material = ExtResource("pipe")
@@ -140,6 +141,7 @@ color_ramp = SubResource("fade_tex")
 transparency = 1
 shading_mode = 0
 vertex_color_use_as_albedo = true
+albedo_texture = ExtResource("vapor")
 albedo_color = Color(0.72, 0.82, 0.82, 0.18)
 billboard_mode = 3
 particles_anim_h_frames = 1
@@ -187,6 +189,7 @@ color_ramp = SubResource("fade_tex")
 [sub_resource type="StandardMaterial3D" id="smoke_mat"]
 transparency = 1
 vertex_color_use_as_albedo = true
+albedo_texture = ExtResource("vapor")
 albedo_color = Color(0.09, 0.09, 0.09, 0.7)
 billboard_mode = 3
 particles_anim_h_frames = 1

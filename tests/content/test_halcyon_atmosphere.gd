@@ -138,6 +138,18 @@ func test_atmosphere_is_decoration_under_an_atmosphere_root() -> void:
 	scene.free()
 
 
+func test_large_vapor_particles_have_soft_textured_edges() -> void:
+	var scene: Node = (load(ATMOSPHERE) as PackedScene).instantiate()
+	autofree(scene)
+	for path: String in ["Steam/CoolantTunnel", "TruckFire/Smoke"]:
+		var particles: GPUParticles3D = scene.get_node(path) as GPUParticles3D
+		var material: StandardMaterial3D = (particles.draw_pass_1 as QuadMesh).material as StandardMaterial3D
+		assert_eq(material.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA, path)
+		assert_not_null(material.albedo_texture, path)
+		if material.albedo_texture:
+			assert_eq(material.albedo_texture.resource_path, "res://assets/textures/halcyon/vapor_wisp.png", path)
+
+
 func test_monitor_screens_use_the_powered_instance_uniform() -> void:
 	var shader: Shader = load(SCREEN_SHADER) as Shader
 	assert_string_contains(shader.code, "instance uniform float powered")
