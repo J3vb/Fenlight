@@ -22,6 +22,8 @@ var grenade_hold: GrenadeHold = GrenadeHold.new()
 var _solver: PlayerArmPose
 var _support: Node3D
 var _support_rest: Vector3 = Vector3.ZERO
+var _carry_index: int = -1
+var _carry_weight: float = 0.0
 var _morph_index: int = -1
 var _markers: Array[Node3D] = []
 var _hand_rest: Array[Transform3D] = []
@@ -69,7 +71,7 @@ func bind_weapon(current: Weapon) -> void:
 		hide()
 		return
 	var viewmodel: Node3D = current.get_node("Viewmodel").get_child(0) as Node3D
-	_mount = viewmodel.get_node_or_null("CharmMount") as Node3D
+	_mount = viewmodel.find_child("CharmMount", true, false) as Node3D
 	for part: String in PLACEHOLDERS:
 		var placeholder: Node3D = viewmodel.find_child(part, true, false) as Node3D
 		if placeholder:
@@ -93,6 +95,10 @@ func _warn_no_grip(data: WeaponData) -> void:
 
 
 func _select_grip() -> void:
+	if _carry_index >= 0:
+		mesh.set_blend_shape_value(_carry_index, 0.0)
+	_carry_weight = 0.0
+	_carry_index = (mesh.find_blend_shape_by_name(profile.carry_morph) if not profile.carry_morph.is_empty() else -1)
 	if _morph_index >= 0:
 		mesh.set_blend_shape_value(_morph_index, 0.0)
 	_morph_index = (mesh.find_blend_shape_by_name(profile.morph) if not profile.morph.is_empty() else -1)
@@ -106,6 +112,17 @@ func _set_markers(index: int, grip: PlayerArmProfiles.Hand) -> void:
 	var inverse: Transform3D = _hand_rest[index].affine_inverse()
 	_markers[index * 2].position = inverse * grip.source_index
 	_markers[index * 2 + 1].position = inverse * grip.source_thumb
+
+
+func _pose_fingers(weight: float) -> void:
+	if _carry_index < 0 or weight == _carry_weight:
+		return
+	_carry_weight = weight
+	mesh.set_blend_shape_value(_carry_index, weight)
+	mesh.set_blend_shape_value(_morph_index, 1.0 - weight)
+	var inverse: Transform3D = _hand_rest[1].affine_inverse()
+	_markers[2].position = inverse * profile.left.source_index.lerp(profile.carry_index, weight)
+	_markers[3].position = inverse * profile.left.source_thumb.lerp(profile.carry_thumb, weight)
 
 
 func _process(delta: float) -> void:
@@ -133,11 +150,23 @@ func update_pose() -> void:
 	pump_delta += weapon.pose.reload_hand(profile.left.wrist + pump_delta)
 	var relax: float = weapon.pose.reload_relax()
 	var to_holder: Basis = (get_parent() as Node3D).transform.basis.inverse()
-	_solver.set_left_hold(to_holder * GrenadeHold.FINGERS, to_holder * GrenadeHold.BACK, grenade_hold.weight)
+	if weapon.pose.break_action and grenade_hold.weight == 0.0:
+		var carry: BreakActionReload = weapon.pose.break_action
+		_solver.set_left_hold(
+			weapon.basis * BreakActionReload.FINGERS, weapon.basis * BreakActionReload.BACK, carry.relax, true
+		)
+		_pose_fingers(carry.hand_weight)
+	else:
+		_pose_fingers(0.0)
+		_solver.set_left_hold(to_holder * GrenadeHold.FINGERS, to_holder * GrenadeHold.BACK, grenade_hold.weight)
 	if grenade_hold.weight > 0.0:
 		pump_delta += _hold_delta(profile.left.wrist + pump_delta)
 		relax = maxf(relax, grenade_hold.weight)
 	_solver.pose(profile, weapon.transform, pump_delta, weapon._sprint_progress, relax)
+	if _carry_weight > 0.0:
+		var pinch: Vector3 = (_markers[2].position + _markers[3].position) * 0.5
+		var hand: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(_left_hand)
+		weapon.pose.break_action.place_in_hand(hand * pinch)
 	_place_frag()
 	if weapon.pose.motion and weapon.is_reloading() and not _warned_reach.has(weapon.data.id):
 		_check_reach()

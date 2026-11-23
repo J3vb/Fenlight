@@ -12,6 +12,7 @@ import character_rig as rig
 import gear_paint as paint
 import player_arm_shapes as body
 import player_grip_profiles as profiles
+import player_shell_grasp as shell_grasp
 from mathutils import Matrix, Vector
 from player_arm_morphs import add_variant
 from player_grip_model import (
@@ -99,14 +100,16 @@ def _tip_marker(name, point, armature, side):
     obj.matrix_world = Matrix.Translation(point)
 
 
-def _fingers(armature, mats, side, sign, profile="rifle_ar", markers=True):
+def _fingers(armature, mats, side, sign, profile="rifle_ar", markers=True, carrying=False):
     across, _along, _inward = _frame(sign)
     diameter = 0.032 if side == "R" else 0.045
     parts = []
     for index in range(4):
         offset = (index - 1.5) * 0.016
         root = Vector((sign * 0.675, -0.017 if side == "R" else -0.012, 0.985)) + across * offset
-        points = _finger_path(root, sign, diameter, index, profile)
+        points = (
+            shell_grasp.finger_path(root, index) if carrying else _finger_path(root, sign, diameter, index, profile)
+        )
         radii = _finger_radii(diameter, index, profile)
         finger = _grip_tube("GripFinger" + side, points, radii, mats["rubber"], sign)
         parts.append(finger)
@@ -123,7 +126,7 @@ def _fingers(armature, mats, side, sign, profile="rifle_ar", markers=True):
             centre = _grip_centre(root, sign, diameter, profile)
             if markers:
                 _tip_marker("GripIndexTip", index_tip, armature, side)
-    points = _thumb_path(index_tip, centre, sign, diameter, profile)
+    points = shell_grasp.thumb_path() if carrying else _thumb_path(index_tip, centre, sign, diameter, profile)
     radii = [0.014, 0.014, 0.013, 0.011, 0.008, 0.002]
     if side == "R":
         radii = [0.014, 0.014, 0.013, 0.012, 0.011, 0.010, 0.008, 0.006, 0.004, 0.002]
@@ -149,6 +152,13 @@ def _grip_variants(armature, mats, base, metadata):
             parts, info[side] = _fingers(armature, mats, side, sign, profile, markers=False)
             add_variant(base[side], parts, key)
         metadata[profile] = info
+    for profile in ("coachman_2b", "grubber_sawnoff"):
+        key = "carry_" + profile
+        parts, carry = _fingers(armature, mats, "L", 1, profile, markers=False, carrying=True)
+        add_variant(base["L"], parts, key)
+        parts, _ = _fingers(armature, mats, "R", -1, profile, markers=False)
+        add_variant(base["R"], parts, key)
+        metadata[profile]["carry"] = {"morph": key, "index": carry["index"], "thumb": carry["thumb"]}
     bpy.context.scene["player_arm_grips"] = json.dumps({"version": 1, "profiles": metadata}, allow_nan=False)
 
 

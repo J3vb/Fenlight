@@ -125,3 +125,21 @@ func test_a_gun_put_away_while_aiming_comes_back_unaimed() -> void:
 	_tick(0.5)
 	player.weapons.equip(1)
 	assert_eq(rifle.ads_progress, 0.0, "no aimed zoom or slow walk during the raise")
+
+
+func test_equip_arcs_into_the_rest_pose_before_the_gate_opens() -> void:
+	var holder: WeaponHolder = player.weapons
+	holder.equip(0)
+	holder._process(0.0)
+	var bottom: float = holder.position.y
+	holder.tick(WeaponHolder.SWAP_TIME * 0.5)
+	holder._process(0.0)
+	assert_gt(absf(holder.position.x), 0.01, "the incoming gun follows a diagonal arc")
+	assert_between(holder.position.y, bottom, 0.0)
+	holder.tick(WeaponHolder.SWAP_TIME * 0.4)
+	holder._process(0.0)
+	assert_lt(absf(holder.position.y), 0.01, "the gun settles over the last tenth of the draw")
+	assert_true(holder.is_swapping())
+	holder.tick(WeaponHolder.SWAP_TIME * 0.11)
+	holder._process(0.0)
+	assert_almost_eq(holder.position, Vector3.ZERO, Vector3.ONE * 0.0001)

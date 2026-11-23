@@ -14,7 +14,23 @@ func _player_with_weapon(id: StringName) -> Player:
 	return player
 
 
-func _assert_pose_preserves_fire_state(holder: WeaponHolder) -> void:
+func _assert_carry_pose(view: PlayerArmView, pose: Transform3D, rest: Basis) -> void:
+	var gun: Weapon = view.weapon
+	var grip: Vector3 = view.profile.left.wrist
+	var wrist: Vector3 = gun.transform * (grip + gun.pose.reload_hand(grip))
+	assert_almost_eq(pose.origin, wrist, Vector3.ONE * .00001)
+	assert_gt(wrist.distance_to(gun.transform * grip), .10, "the support hand has left the forepiece")
+	var dorsal: Vector3 = pose.basis * rest.inverse() * Vector3.FORWARD
+	assert_gt(dorsal.dot((gun.basis * BreakActionReload.BACK).normalized()), 0.5)
+	var shell: Node3D = gun.pose.break_action.get_node("ShellR")
+	var between_tips: Vector3 = shell.to_global(Vector3.FORWARD * 0.014)
+	for tip_name: String in ["GripIndexTip_L", "GripThumbTip_L"]:
+		var tip: Node3D = view.find_child(tip_name, true, false)
+		var distance: float = (view.skeleton.global_transform * pose * tip.position).distance_to(between_tips)
+		assert_between(distance, .005, .012, tip_name)
+
+
+func _assert_pose_preserves_fire_state(holder: WeaponHolder, carrying: bool = false) -> void:
 	var weapon: Weapon = holder.current
 	var ammo: int = weapon.instance.ammo_in_mag
 	var state: Weapon.State = weapon.state
@@ -31,8 +47,11 @@ func _assert_pose_preserves_fire_state(holder: WeaponHolder) -> void:
 		var bone: int = view.skeleton.find_bone("hand_R" if index == 0 else "hand_L")
 		var pose: Transform3D = view.skeleton.get_bone_global_pose(bone)
 		var rest: Basis = view.skeleton.get_bone_global_rest(bone).basis
-		assert_almost_eq(pose.origin, transform * grips[index].wrist, Vector3.ONE * .00001)
-		assert_true(pose.basis.is_equal_approx(transform.basis * grips[index].rotation * rest))
+		if index == 1 and carrying:
+			_assert_carry_pose(view, pose, rest)
+		else:
+			assert_almost_eq(pose.origin, transform * grips[index].wrist, Vector3.ONE * .00001)
+			assert_true(pose.basis.is_equal_approx(transform.basis * grips[index].rotation * rest))
 		var forearm: int = view.skeleton.get_bone_parent(bone)
 		var upper: int = view.skeleton.get_bone_parent(forearm)
 		var elbow: Vector3 = view.skeleton.get_bone_global_pose(forearm).origin
@@ -61,7 +80,7 @@ func test_imported_arms_follow_both_barrel_blast_and_automatic_empty_reload() ->
 		_assert_pose_preserves_fire_state(player.weapons)
 		weapon.tick(weapon._reload_duration * .5)
 		weapon._process(.05)
-		_assert_pose_preserves_fire_state(player.weapons)
+		_assert_pose_preserves_fire_state(player.weapons, true)
 		player.last_frame.buttons = 0
 		weapon.tick(weapon._reload_timer + .001)
 		weapon._process(.05)

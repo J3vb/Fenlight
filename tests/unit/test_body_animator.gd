@@ -213,3 +213,17 @@ func test_hold_transform_puts_the_grip_point_on_the_palm() -> void:
 	assert_almost_eq(palm.distance_to(BodyAnimator.PALM), 0.0, 0.0001)
 	var barrel: Vector3 = BodyAnimator.hold_transform(grip).basis * Vector3.FORWARD
 	assert_almost_eq(barrel.distance_to(Vector3.UP), 0.0, 0.0001, "the barrel runs along the hand bone")
+
+
+func test_teammate_reload_clip_counts_the_long_first_cycle_only_once() -> void:
+	var gun: Weapon = player.weapons.give(Content.weapon(&"brenner_trench"))
+	gun.instance.ammo_in_mag = 0
+	gun.instance.ammo_reserve = 3
+	assert_true(gun.start_reload())
+	await wait_physics_frames(2)
+	var first: float = gun.data.empty_reload_time
+	var rest: float = gun.data.per_round_time
+	assert_almost_eq(animator.reload_time, first + 2.0 * rest, 0.001)
+	gun.tick(first + 2.0 * rest + 0.01)
+	await wait_physics_frames(2)
+	assert_eq(animator.reload_time, 0.0)

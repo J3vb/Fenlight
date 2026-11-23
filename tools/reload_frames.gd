@@ -51,9 +51,8 @@ func _render(guns: PackedStringArray, old: bool) -> void:
 				weapon.state = Weapon.State.RELOADING
 				weapon._empty_reload = empty
 				weapon._reload_duration = 1.0
+				weapon._first_round_duration = 1.0
 				weapon._reload_timer = 1.0 - t
-				if weapon.data.reload_per_round:
-					weapon._reload_timer = RoundReload.cycle_length(weapon) * (1.0 - t)
 				weapon.pose.update(1.0)
 				weapon.reset_physics_interpolation()
 				player.weapons.arm_view.update_pose()

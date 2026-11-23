@@ -143,7 +143,8 @@ func _on_reload_started(reloader: Player, duration: float) -> void:
 	var weapon: Weapon = player.weapons.current
 	if weapon and weapon.data.reload_per_round:
 		var ammo: WeaponInstance = weapon.instance
-		_started_reload *= maxi(mini(weapon.data.magazine_size - ammo.ammo_in_mag, ammo.ammo_reserve), 1)
+		var rounds: int = mini(weapon.data.magazine_size - ammo.ammo_in_mag, ammo.ammo_reserve)
+		_started_reload += maxi(rounds - 1, 0) * weapon._reload_duration
 
 
 ## Velocity over the time since the position last changed, so pose updates that skip ticks still read as steady.

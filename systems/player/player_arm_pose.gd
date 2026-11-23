@@ -16,6 +16,7 @@ var _upper_length: PackedFloat32Array = []
 var _lower_length: PackedFloat32Array = []
 ## Left hand turned to hold something (a frag) instead of its grip, blended in by hold_weight.
 var _hold_rotation: Basis = Basis.IDENTITY
+var _align_forearm: bool = false
 var _hold_weight: float = 0.0
 
 
@@ -51,15 +52,16 @@ func pose(
 
 ## Turns the left hand so its fingers point along `fingers` with the back of the hand toward `back`
 ## (skeleton space), blended over its grip by weight. Weight 0 gives the grip back.
-func set_left_hold(fingers: Vector3, back: Vector3, weight: float) -> void:
+func set_left_hold(fingers: Vector3, back: Vector3, weight: float, align_forearm: bool = false) -> void:
+	_align_forearm = align_forearm and weight > 0.0
 	_hold_weight = clampf(weight, 0.0, 1.0)
-	_hold_rotation = _basis(fingers, back) * _basis(_hand_rest[1].basis.y, Vector3.FORWARD).inverse()
+	_hold_rotation = (_basis(fingers, back) * _basis(_hand_rest[1].basis.y, Vector3.FORWARD).inverse())
 
 
 func _shoulder_offset(grip: PlayerArmProfiles.Hand, travel: Vector3) -> Vector3:
 	var rise: float = clampf(travel.y * 1.5, 0, .07)
 	var lift: Vector3 = Vector3(0, minf(rise, grip.shoulder_lift.x), 0)
-	lift.x = clampf(travel.y, -.10, .10) * (grip.shoulder_sway.x if travel.y < 0 else grip.shoulder_sway.y)
+	lift.x = (clampf(travel.y, -.10, .10) * (grip.shoulder_sway.x if travel.y < 0 else grip.shoulder_sway.y))
 	lift.y += clampf(travel.y * grip.shoulder_drop, -.04, 0)
 	lift.z = minf(clampf(travel.z * .5, 0, rise * 1.6), grip.shoulder_lift.y)
 	return lift
@@ -92,7 +94,12 @@ func _arm(
 		palm = target.basis.y.normalized()
 		dorsal = target.basis * _hand_rest[index].basis.inverse() * Vector3.FORWARD
 	_set_bone(_upper[index], _upper_rest[index], shoulder, elbow - shoulder, dorsal)
-	_set_bone(_lower[index], _lower_rest[index], elbow, forearm, _forearm_dorsal(forearm, palm, dorsal))
+	var forearm_back: Vector3 = _forearm_dorsal(forearm, palm, dorsal)
+	if index == 1 and _align_forearm:
+		# Transport the glove's roll along the arm while the hand turns away from its grip.
+		var neutral: Vector3 = Quaternion(palm, forearm.normalized()) * dorsal
+		forearm_back = forearm_back.slerp(neutral, smoothstep(0.0, 0.25, relax))
+	_set_bone(_lower[index], _lower_rest[index], elbow, forearm, forearm_back)
 	_skeleton.set_bone_global_pose(_hand[index], target)
 
 
@@ -114,7 +121,7 @@ func _relaxed(hand: Basis, forearm: Vector3, relax: float) -> Basis:
 	var palm: Vector3 = hand.y.normalized()
 	var forward: Vector3 = forearm.normalized()
 	var bend: float = palm.angle_to(forward)
-	var limit: float = lerpf(PI, deg_to_rad(RELAXED_BEND), relax)
+	var limit: float = lerpf(PI, deg_to_rad(16.0 if _align_forearm else RELAXED_BEND), relax)
 	var axis: Vector3 = palm.cross(forward)
 	if bend <= limit or axis.length_squared() < .000001:
 		return hand

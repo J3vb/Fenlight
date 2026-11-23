@@ -250,8 +250,11 @@ func _process(delta: float) -> void:
 	rotation = rotation.lerp(target_rot, clampf(sway_smoothing * delta, 0.0, 1.0))
 	_bob_time += delta * (6.0 + 4.0 * _move_factor)
 	var bob: float = 0.012 * weapon_bob * _move_factor * (1.0 - get_ads_progress() * 0.9)
-	var dip: float = SWAP_DIP * _swap_left / maxf(_swap_time, 0.001)
-	position = Vector3(cos(_bob_time * 0.5) * bob, -absf(sin(_bob_time)) * bob - dip, 0.0)
+	var draw: float = smoothstep(0.0, 1.0, _swap_left / maxf(_swap_time, 0.001))
+	var arc: float = 4.0 * draw * (1.0 - draw)
+	position = Vector3(
+		cos(_bob_time * 0.5) * bob + 0.04 * arc, -absf(sin(_bob_time)) * bob - SWAP_DIP * draw, 0.035 * draw
+	)
 
 
 func _on_setting_changed(section: StringName, key: StringName, value: Variant) -> void:

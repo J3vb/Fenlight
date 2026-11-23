@@ -71,6 +71,7 @@ def test_finished_arm_export_has_all_zero_default_morphs_and_matching_metadata(t
     assert metadata["version"] == 1 and set(metadata["profiles"]) == set(profiles.PROFILES)
     mesh = document["meshes"][0]
     expected = ["grip_" + profile for profile in profiles.PROFILES if profile != "rifle_ar"]
+    expected += ["carry_coachman_2b", "carry_grubber_sawnoff"]
     assert mesh["extras"]["targetNames"] == expected
     assert mesh["weights"] == [0.0] * len(expected)
     assert len(document["skins"][0]["joints"]) == 22
@@ -98,7 +99,12 @@ def assert_exported_cap_markers(document, binary, metadata):
     )
     base = [Vector(point) for point in accessor(document, binary, rubber["attributes"]["POSITION"])]
     indices = [item[0] for item in accessor(document, binary, rubber["indices"])]
-    for name, profile in metadata["profiles"].items():
+    poses = dict(metadata["profiles"])
+    for profile in metadata["profiles"].values():
+        if "carry" in profile:
+            carry = profile["carry"]
+            poses[carry["morph"]] = {"morph": carry["morph"], "L": carry, "R": profile["R"]}
+    for name, profile in poses.items():
         points = base
         if profile["morph"]:
             target = rubber["targets"][names.index(profile["morph"])]["POSITION"]

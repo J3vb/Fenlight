@@ -30,14 +30,17 @@ func test_models_have_two_barrels_and_independent_action_parts() -> void:
 			continue
 		var receiver: Node3D = gun.find_child("Receiver", true, false) as Node3D
 		assert_true(receiver is MeshInstance3D, String(id) + " static action is joined")
-		for part: String in ["BarrelL", "BarrelR", "Bolt", "Trigger", "Muzzle", "Foregrip", GUNS[id][2]]:
+		var hinge: Node3D = receiver.get_node("Hinge") as Node3D
+		for part: String in ["Hinge", "Bolt", "Trigger", GUNS[id][2]]:
 			var node: Node3D = gun.find_child(part, true, false) as Node3D
 			assert_not_null(node, "%s has %s" % [id, part])
 			if node:
 				assert_eq(node.get_parent(), receiver, "%s %s has an independent pivot" % [id, part])
+		for part: String in ["BarrelL", "BarrelR", "Muzzle", "Foregrip"]:
+			assert_true(hinge.has_node(part), "%s carries %s as the gun opens" % [id, part])
 		assert_null(gun.find_child("Magazine", true, false), "break action loads shells by hand")
 		var muzzle: Node3D = gun.find_child("Muzzle", true, false) as Node3D
-		assert_lt(muzzle.position.z, -0.28, String(id) + " fires down Godot -Z")
+		assert_lt((hinge.transform * muzzle.position).z, -0.28, String(id) + " fires down Godot -Z")
 		assert_true(gun.scale.is_equal_approx(Vector3.ONE), "imports in metres")
 		var box: Array[AABB] = [AABB()]
 		_bounds(gun, Transform3D.IDENTITY, box)

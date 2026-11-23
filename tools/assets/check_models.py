@@ -45,6 +45,14 @@ BUDGETS = {
 BUDGETS.update(character_checks.BUDGETS)
 
 GUN = {"Receiver": None, "Muzzle": "Receiver", "Bolt": "Receiver"}
+DOUBLE_BARREL = {
+    **GUN,
+    "Hinge": "Receiver",
+    "BarrelL": "Hinge",
+    "BarrelR": "Hinge",
+    "Foregrip": "Hinge",
+    "Muzzle": "Hinge",
+}
 GUN_WITH_MAG = {**GUN, "Magazine": "Receiver"}
 
 # Folders of models that never move: a model here needs no JOINTS line.
@@ -79,8 +87,8 @@ JOINTS = {
     "warden_p9": {**GUN_WITH_MAG, "Slide": "Bolt", "Trigger": "Receiver"},
     "wren_mp": {**GUN_WITH_MAG, "Slide": "Bolt", "Trigger": "Receiver", "Brace": "Receiver"},
     "siphon": {**GUN_WITH_MAG, "Emitter": "Receiver", "Core": "Receiver", "Stock": "Receiver"},
-    "coachman_2b": {**GUN, "BarrelL": "Receiver", "BarrelR": "Receiver", "Stock": "Receiver", "Trigger": "Receiver"},
-    "grubber_sawnoff": {**GUN, "BarrelL": "Receiver", "BarrelR": "Receiver", "Grip": "Receiver", "Trigger": "Receiver"},
+    "coachman_2b": {**DOUBLE_BARREL, "Stock": "Receiver", "Trigger": "Receiver"},
+    "grubber_sawnoff": {**DOUBLE_BARREL, "Grip": "Receiver", "Trigger": "Receiver"},
     **zombie_checks.JOINTS,
 }
 JOINTS.update(character_checks.JOINTS)
