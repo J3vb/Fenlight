@@ -33,6 +33,7 @@ func offer(drop: LootDrop, profile: CharacterProfile) -> void:
 	ok_button_text = "Confirm exchange"
 	confirmed.connect(_confirm)
 	canceled.connect(queue_free)
+	drop.player.local_input.block_for_dialog(self)
 	UI.hold_mouse(self, true)
 	popup_centered()
 	_choices.grab_focus()

@@ -100,3 +100,26 @@ func test_toggle_sprint_ends_when_running_stops_or_aiming() -> void:
 	_press(&"ads")
 	assert_false(_local.sample(5).has(InputFrame.SPRINT), "aiming ends the sprint")
 	Input.action_release(&"move_forward")
+
+
+func test_gameplay_actions_wait_for_the_dialog_and_its_held_click_to_clear() -> void:
+	var dialog: ConfirmationDialog = ConfirmationDialog.new()
+	add_child(dialog)
+	_local.block_for_dialog(dialog)
+	Input.action_press(&"fire")
+	Input.action_press(&"lethal")
+	assert_eq(_local.sample(1).buttons, 0)
+	var action: InputEventAction = InputEventAction.new()
+	action.action = &"melee"
+	action.pressed = true
+	_local._unhandled_input(action)
+	dialog.free()
+	assert_eq(_local.sample(2).buttons, 0, "holding the closing click cannot fire in the world")
+	Input.action_release(&"fire")
+	Input.action_release(&"lethal")
+	assert_eq(_local.sample(3).buttons, 0)
+	await wait_physics_frames(2)
+	assert_false(_local.sample(4).has(InputFrame.MELEE), "the queued melee press was discarded")
+	Input.action_press(&"fire")
+	assert_true(_local.sample(5).has(InputFrame.FIRE))
+	Input.action_release(&"fire")

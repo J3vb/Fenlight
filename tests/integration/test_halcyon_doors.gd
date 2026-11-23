@@ -127,8 +127,10 @@ func test_wall_buy_sells_ammo_and_guns() -> void:
 	player.wallet.set_points(5000)
 	var rifle: Weapon = player.weapons.weapons[1]
 	rifle.instance.ammo_reserve = 0
+	assert_string_contains(wall_buy.get_prompt(player), "Buy ammo for AR-17 [F]")
 	wall_buy.interact(player)
 	assert_eq(rifle.instance.ammo_reserve, rifle.data.max_reserve, "ammo refilled")
+	assert_eq(wall_buy.get_prompt(player), "AR-17 ammo full")
 	assert_eq(player.wallet.points, 4400, "ammo costs half")
 	wall_buy.weapon = rifle.data.duplicate() as WeaponData
 	wall_buy.interact(player)

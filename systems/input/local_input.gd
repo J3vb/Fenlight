@@ -25,6 +25,7 @@ var sensitivity_scale: float = 1.0
 
 var _look_accum: Vector2 = Vector2.ZERO
 var _pressed: int = 0
+var _input_dialog: WeakRef
 var _crouch_on: bool = false
 var _ads_on: bool = false
 var _sprint_on: bool = false
@@ -63,8 +64,24 @@ func _on_settings_changed(section: StringName, _key: StringName, _value: Variant
 		_update_toggles()
 
 
+## Exclusive in-match dialogs also own held actions, which Godot polls outside GUI event dispatch.
+func block_for_dialog(dialog: Window) -> void:
+	_input_dialog = weakref(dialog)
+
+
+func _dialog_blocks_input() -> bool:
+	if _input_dialog == null:
+		return false
+	var actions: int = (
+		InputFrame.FIRE | InputFrame.ALT_FIRE | InputFrame.ADS | InputFrame.LETHAL | InputFrame.INTERACT_HELD
+	)
+	if _input_dialog.get_ref() == null and (_held_buttons() & actions) == 0:
+		_input_dialog = null
+	return true
+
+
 func _unhandled_input(event: InputEvent) -> void:
-	if not enabled:
+	if not enabled or _input_dialog != null:
 		return
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
@@ -89,7 +106,7 @@ func _unhandled_input(event: InputEvent) -> void:
 func sample(tick: int) -> InputFrame:
 	var f: InputFrame = InputFrame.new()
 	f.tick = tick
-	if not enabled or UI.top() != &"":
+	if not enabled or UI.top() != &"" or _dialog_blocks_input():
 		_look_accum = Vector2.ZERO
 		_pressed = 0
 		_clear_toggles()

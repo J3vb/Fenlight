@@ -27,6 +27,8 @@ func get_prompt(player: Player) -> String:
 	if once_per_player and (owned or taken_by.has(player.net_id)):
 		return ""
 	if owned:
+		if owned.instance.ammo_reserve >= owned.data.max_reserve:
+			return "%s ammo full" % owned.data.display_name
 		return "Buy ammo for %s [F]  %d" % [owned.data.display_name, ammo_cost(owned.data.id)]
 	var offer: String = "Take %s" % weapon.display_name if once_per_player else "Buy %s" % weapon.display_name
 	if player.weapons.weapons.size() >= player.weapons.max_slots and player.weapons.current:

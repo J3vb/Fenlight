@@ -277,6 +277,9 @@ func test_player_can_choose_the_reward_for_the_last_stash_space() -> void:
 	drop.interact(player)
 	var dialog: StashExchange = drop.get_node("StashExchange") as StashExchange
 	assert_true(dialog.get_ok_button().disabled, "explicit choice is required")
+	Input.action_press(&"fire")
+	assert_eq(player.local_input.sample(1).buttons, 0)
+	Input.action_release(&"fire")
 	dialog.canceled.emit()
 	await wait_physics_frames(2)
 	assert_eq(session.loot.pack.items, [common], "cancelling keeps both choices available")
