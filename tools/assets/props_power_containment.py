@@ -27,7 +27,17 @@ def build_generator() -> None:
     box("Radiator", (0.5, 1.9, 1.75), (-1.72, 0.0, 1.05), m["olive"], bevel=0.03)
     for i in range(9):
         box(f"Grille{i}", (0.02, 1.6, 0.06), (-1.98, 0.0, 0.42 + i * 0.16), m["dark"])
-    box("Alternator", (1.1, 1.3, 1.15), (1.35, 0.1, 0.76), m["steel"], bevel=0.05)
+    box("AlternatorMount", (1.17, 1.05, 0.25), (1.29, 0.08, 0.29), m["dark"])
+    cylinder("AlternatorBarrel", 0.55, 1.12, (1.31, 0.08, 0.87), m["steel"], axis="x")
+    for i in range(3):
+        cylinder(f"CoolingFin{i}", 0.60, 0.06, (0.87 + i * 0.36, 0.08, 0.87), m["steel"], axis="x")
+    cylinder("EndBell", 0.38, 0.10, (1.89, 0.08, 0.87), m["dark"], axis="x")
+    cylinder("ExhaustHeader", 0.105, 1.74, (-0.36, -0.74, 1.34), m["dark"], axis="x")
+    for i in range(4):
+        x = -1.02 + i * 0.44
+        neck = box(f"ManifoldBranch{i}", (0.14, 0.30, 0.32), (x, -0.61, 1.49), m["dark"])
+        neck.rotation_euler.x = -0.48
+        box(f"ServiceCover{i}", (0.34, 0.034, 0.46), (x, -0.666, 0.80), m["olive"])
     box("ControlBox", (0.75, 0.32, 0.9), (1.35, -0.95, 1.05), m["olive"], bevel=0.02)
     box("ControlFace", (0.6, 0.02, 0.5), (1.35, -1.115, 1.2), m["dark"])
     for i in range(3):
@@ -37,10 +47,11 @@ def build_generator() -> None:
             0,
         )
     p._cyl("Exhaust", 0.11, 0.55, (0.3, 0.45, 1.85), m["dark"], verts=12)
+    p._cyl("Silencer", 0.185, 0.31, (0.3, 0.45, 1.99), m["steel"], verts=12)
     p._cyl("ExhaustCap", 0.14, 0.05, (0.3, 0.45, 2.35), m["dark"], verts=12)
     cylinder("FuelLine", 0.03, 3.6, (0.0, 1.12, 0.32), m["steel"], axis="x")
     for i in range(4):
-        box(f"Rocker{i}", (0.3, 0.6, 0.1), (-1.0 + i * 0.44, 0.1, 1.93), m["steel"], bevel=0.02)
+        box(f"Rocker{i}", (0.3, 0.6, 0.1), (-1.0 + i * 0.44, 0.1, 1.93), m["steel"])
     p._merge("Generator")
 
 
