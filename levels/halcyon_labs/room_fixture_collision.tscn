@@ -1,5 +1,14 @@
 [gd_scene format=3]
 
+[sub_resource type="BoxShape3D" id="HeatRail"]
+size = Vector3(1.38, 0.061, 0.11)
+
+[sub_resource type="BoxShape3D" id="HeatShade0"]
+size = Vector3(0.28, 0.17, 0.28)
+
+[sub_resource type="BoxShape3D" id="HeatShade1"]
+size = Vector3(0.28, 0.17, 0.28)
+
 [sub_resource type="BoxShape3D" id="JunctionBox"]
 size = Vector3(0.53, 0.52, 0.15)
 
@@ -22,6 +31,27 @@ size = Vector3(0.43, 0.066, 2.25)
 size = Vector3(0.15, 0.09, 0.66)
 
 [node name="RoomFixtureCollision" type="Node3D"]
+
+[node name="HeatRail" type="StaticBody3D" parent="."]
+position = Vector3(45.02, 2.57, 40.57)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="HeatRail"]
+shape = SubResource("HeatRail")
+
+[node name="HeatShade0" type="StaticBody3D" parent="."]
+position = Vector3(44.57, 2.46, 40.57)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="HeatShade0"]
+shape = SubResource("HeatShade0")
+
+[node name="HeatShade1" type="StaticBody3D" parent="."]
+position = Vector3(45.48, 2.46, 40.57)
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape3D" parent="HeatShade1"]
+shape = SubResource("HeatShade1")
 
 [node name="JunctionBox" type="StaticBody3D" parent="."]
 position = Vector3(21.87, 1.07, 26.3)

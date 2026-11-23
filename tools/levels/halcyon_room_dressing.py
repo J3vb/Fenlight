@@ -78,7 +78,7 @@ def mess_hall(scene):
         (45.02, 2.57, 40.57),
         (1.38, 0.061, 0.11),
         "steel",
-        walk_through="suspended above the fixed dining table",
+        solid=True,
     )
     for i, x in enumerate((44.57, 45.48)):
         scene.shape(
@@ -87,7 +87,7 @@ def mess_hall(scene):
             (x, 2.46, 40.57),
             (0.28, 0.17, 0.28),
             "green_metal",
-            walk_through="suspended above the fixed dining table",
+            solid=True,
         )
         scene.rod(f"HeatLamp{i}", (x, 2.37, 40.57), (0.21, 0.022, 0.21), "sodium_lamp", pwr=True)
 

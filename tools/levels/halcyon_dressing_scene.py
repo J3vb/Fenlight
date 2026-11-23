@@ -153,7 +153,9 @@ class DressingScene:
         self.current = n
         self.node(n, "Node3D", ".")
 
-    def shape(self, n, kind, p, size, m, rot=(0, 0, 0), pwr=False, reach=25, walk_through=None):
+    def shape(self, n, kind, p, size, m, rot=(0, 0, 0), pwr=False, reach=25, walk_through=None, solid=False):
+        if solid:
+            self.collision_box(n, p, size, rot)
         props = {"position": vector(p)}
         if any(rot):
             props["rotation"] = vector(tuple(radians(v) for v in rot))
@@ -175,9 +177,7 @@ class DressingScene:
             **props,
         )
 
-    def box(self, n, p, size, m, rot=(0, 0, 0), solid=False, **kw):
-        if solid:
-            self.collision_box(n, p, size, rot)
+    def box(self, n, p, size, m, rot=(0, 0, 0), **kw):
         self.shape(n, "block", p, size, m, rot, **kw)
 
     def rod(self, n, p, size, m, rot=(0, 0, 0), **kw):

@@ -78,7 +78,7 @@ Each sheet shows the previous game capture, the current game and the concept fro
 | [Technical rooms](images/halcyon-labs/room-dressing-technical.jpg) | Generator Hall service cover and work lamp, Labs transfer bay, Coolant Tunnel manifold, Cold Room sample shelf |
 | [Containment and access](images/halcyon-labs/room-dressing-containment.jpg) | Containment Wing snagged curtain and broken glass, Containment Ramp handrail, Vent Route inspection patch |
 
-The fixtures follow level power and Blackout rounds. The ramp has a dedicated emergency fixture before power returns. Reachable cabinets, the service cover, the portable work lamp and the cold shelf have matching world colliders in the navigation region.
+The fixtures follow level power and Blackout rounds. The ramp has a dedicated emergency fixture before power returns. The navigation region includes matching world colliders for the cabinets, generator repair, ramp lamp and cold shelf. The mess hall heaters are solid for players who climb onto the table.
 
 The room placements and hardware batches regenerate with `python tools/levels/halcyon_room_dressing.py`.
 
