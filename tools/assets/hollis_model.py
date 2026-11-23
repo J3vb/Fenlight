@@ -151,7 +151,7 @@ def grip_parts(m, receiver, metal, wood, checker):
         (-0.03, -0.035),
         (-0.018, -0.006),
     ]
-    grip = g.slab("Grip", outline, 0.034, wood, bevel=0.005)
+    grip = g.contoured("Grip", outline, 0.034, wood, roll=0.014)
     pieces = [
         g.slab(
             "GripFrame",
@@ -227,3 +227,4 @@ def build(m) -> None:
     grip_parts(m, receiver, metal, wood, checker)
     moving_parts(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.024, 0.064, 0.031, 0.066, 0.0008), 0.001, 0.0104, metal)
+    g.stamp(m, "hollis_44", "Receiver", (-0.007, 0.1, 0.028), 0.044)

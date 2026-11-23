@@ -73,13 +73,13 @@ def stock_parts(m, receiver, metal, black, tan):
         (0.008, -0.05),
     ]
     pieces = [
-        g.slab("CheekPiece", g.rounded(-0.4, 0.03, -0.26, 0.05, 0.008), 0.044, black, bevel=0.003),
-        g.slab(
+        g.contoured("CheekPiece", g.rounded(-0.4, 0.03, -0.26, 0.05, 0.008), 0.044, black, roll=0.008),
+        g.contoured(
             "RecoilPad",
             [(-0.448, 0.032), (-0.47, 0.032), (-0.472, -0.104), (-0.46, -0.112), (-0.444, -0.105)],
             0.054,
             black,
-            bevel=0.005,
+            roll=0.007,
         ),
         g.slab("TriggerGuard", guard, 0.014, black, bevel=0.0015),
     ]
@@ -93,6 +93,7 @@ def stock_parts(m, receiver, metal, black, tan):
         vents.append(g.slab(f"VentCut{i}", g.rounded(y, -0.024, y + 0.035, -0.011, 0.005), 0.07, tan))
     g.cut(stock, vents)
     pieces.append(g.lathe("SlingStud", [(0.005, -0.04), (0.005, -0.03)], (0, 0.38, 0), metal, 10, axis="z"))
+    pieces.append(g.inspection_plate(m, "corvid_338", (-0.025, -0.195, -0.011), 0.085))
     m.join_into(stock, pieces)
     m.attach(stock, (0, -0.15, 0.0), receiver)
 

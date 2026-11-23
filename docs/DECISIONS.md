@@ -93,6 +93,7 @@ Each says when to fix it.
 - **Lantern Post to the concept art:** bake ambient is the look colour, not the sky; avg fps 302-468 baked High. Street view 2,639 draw calls, not 600: each player's flashlight keeps its shadow (person's pick 2026-11-19, fps is 2.5x target). [plan](plans/lantern-post-concept.md)
 - **Lantern Post stalls:** Technician, Gunsmith and Trader are Tripo models with our own sign boards; Missions keeps the code-built frame until a Tripo version exists; the Deploy gate stays code-built (person's pick 2026-11-19). [tripo-models](plans/tripo-models.md)
 - **Lantern Post walls:** the whole town wall is the concrete Deploy gate wall (gate_wall sections), not the palisade of the concept; the sky mountains are three peaked ranges (person's pick 2026-11-19). [hub plan](plans/lantern-post-hub.md)
+- **Weapon materials** use one generated detail tile across the unbaked guns and frag. [Shared weapon surface detail](adr/0020-shared-weapon-surface-detail.md)
 - **Wall guns:** BR-12 keeps its stock wrist (no pistol grip); VX-9, BR-12 and MR-28 still use the shared surface shader (AR-17 is baked). Fix when: F-75 bakes them. [guns-concept](plans/guns-concept.md)
 - **Damage numbers:** Siphon shows none (damage is server-side); a host can show overkill from later pellets. Fix when: a player asks for them.
 - **No Git LFS:** binaries in plain git; the lines to switch it on are in `.gitattributes`. Fix when: asset packs arrive.

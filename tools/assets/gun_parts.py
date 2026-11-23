@@ -62,6 +62,66 @@ def slab(name: str, outline: list, width: float, mat, x: float = 0.0, bevel: flo
     return obj
 
 
+def contoured(name: str, outline: list, width: float, mat, roll: float):
+    """Roll the shoulders of a grip, pad or wooden stock into its side profile.
+
+    Each station retains the drawn outline. The long side rolls over the same
+    distance as the short one, so the highlight follows the whole piece.
+    """
+    ys, zs = zip(*outline, strict=True)
+    cy, cz = (min(ys) + max(ys)) / 2, (min(zs) + max(zs)) / 2
+    ry, rz = max(ys) - cy, max(zs) - cz
+    roll = min(roll, width * 0.47, ry * 0.75, rz * 0.75)
+    bm = bmesh.new()
+    rings = []
+    for side in (-1, 1):
+        for angle in (90, 65, 35, 0) if side < 0 else (0, 35, 65, 90):
+            theta = math.radians(angle)
+            x = side * (width * 0.5 - roll * (1.0 - math.sin(theta)))
+            inset = roll * (1.0 - math.cos(theta))
+            rings.append([bm.verts.new((x, y - (y - cy) * inset / ry, z - (z - cz) * inset / rz)) for y, z in outline])
+    for a, b in itertools.pairwise(rings):
+        for i in range(len(outline)):
+            bm.faces.new((a[i - 1], a[i], b[i], b[i - 1]))
+    bm.faces.new(rings[0])
+    bm.faces.new(rings[-1])
+    return _object(name, bm, mat, None)
+
+
+def stock_shell(stations: list, body, rubber, checkering, wrist: float | None = None):
+    """Loft the wrist and cheek through oval sections. The pad meets the same rim
+    and the patterned panels occupy faces of the shell so they follow its curve.
+    Stations run heel to nose: centre Y, top, bottom, half width, finish of next span.
+    """
+    bm = bmesh.new()
+    rings = []
+    count = 20
+    for y, top, bottom, width, _finish in stations:
+        ring = []
+        # The sculpted cheek blends into the flatter wrist under the original glove pose.
+        blend = 0.0 if wrist is None else max(0.0, min(1.0, (y - wrist) / 0.035))
+        power = 0.78 - blend * 0.54
+        for i in range(count):
+            angle = math.tau * i / count
+            side, up = math.cos(angle), math.sin(angle)
+            x = width * math.copysign(abs(side) ** power, side)
+            z = (top + bottom) / 2 + (top - bottom) / 2 * math.copysign(abs(up) ** power, up)
+            ring.append(bm.verts.new((x, y, z)))
+        rings.append(ring)
+    for k, (a, b) in enumerate(itertools.pairwise(rings)):
+        finish = stations[k][-1]
+        for i in range(count):
+            face = bm.faces.new((a[i - 1], a[i], b[i], b[i - 1]))
+            on_side = abs(math.sin(math.tau * (i - 0.5) / count)) < 0.61
+            face.material_index = 1 if finish == "pad" else (2 if finish == "panel" and on_side else 0)
+    bm.faces.new(rings[0]).material_index = 1
+    bm.faces.new(rings[-1])
+    obj = _object("Stock", bm, body, None)
+    obj.data.materials.append(rubber)
+    obj.data.materials.append(checkering)
+    return obj
+
+
 def lathe(
     name: str,
     profile: list,
@@ -191,6 +251,19 @@ def marking(name: str, rect: tuple, x: float, side: int, region: str, mat, thick
         t = t if side > 0 else 1.0 - t
         loop[uv].uv = (u0 + (u1 - u0) * t, v0 + (v1 - v0) * (loop.vert.co.z - z0) / (z1 - z0))
     return _object(name, bm, mat, None)
+
+
+def inspection_plate(m, model: str, at: tuple, width: float):
+    """Flush inspection plate on the visible side of its authored, animating mesh."""
+    x, y, z = at
+    half_height = width * 0.075
+    rect = (y - width / 2, z - half_height, y + width / 2, z + half_height)
+    ink = bpy.data.materials.get("Markings") or m.material("FactoryPrint", m.MATTE_BLACK, roughness=0.65)
+    return marking("InspectionPlate", rect, x, -1 if x < 0 else 1, model, ink, thick=0.00055)
+
+
+def stamp(m, model: str, target: str, at: tuple, width: float) -> None:
+    m.join_into(bpy.data.objects[target], [inspection_plate(m, model, at, width)])
 
 
 def red_dot(m, y: float, rail_top: float, eye: float, black, glass, markings, receiver) -> list:

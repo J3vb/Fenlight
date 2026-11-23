@@ -1,5 +1,4 @@
-// One finish shader for every code-built gun. No textures: all detail comes from
-// object-space noise, so it never swims while the viewmodel moves.
+// Shared gun finish. A mipmapped material tile and wear masks follow each part in object space.
 // Vertex RGB from tools/assets/finish.py is baked AO/cavity; alpha marks the
 // thin inlay (0), Prototype glow (1/3) and ordinary surfaces (1), never transparency. Edge wear
 // follows convex curvature measured from how fast the normal bends on screen,
@@ -26,6 +25,8 @@ uniform float grime : hint_range(0.0, 1.0) = 0.0;
 uniform vec3 grime_color : source_color = vec3(0.352941, 0.274510, 0.188235); // #5A4630
 uniform bool marked = false;
 uniform sampler2D markings_map : source_color, filter_linear_mipmap, repeat_disable;
+// Packed linear heights for brushed steel, moulded polymer and figured walnut.
+uniform sampler2D surface_detail : filter_linear_mipmap_anisotropic, repeat_enable;
 uniform bool baked = false;
 uniform sampler2D albedo_map : source_color, filter_linear_mipmap_anisotropic, repeat_disable;
 uniform sampler2D normal_map : hint_normal, filter_linear_mipmap_anisotropic, repeat_disable;
@@ -62,6 +63,19 @@ float noise(vec3 x) {
 
 float fbm(vec3 p) {
 	return noise(p) * 0.5 + noise(p * 2.03) * 0.25 + noise(p * 4.01) * 0.125 + noise(p * 8.05) * 0.125;
+}
+
+// Triplanar sampling keeps the grain running down the stock and blends across its rounded shoulders.
+vec3 surface_grain(vec3 p, vec3 n) {
+	vec3 weight = pow(abs(n), vec3(4.0));
+	weight /= max(dot(weight, vec3(1.0)), 0.0001);
+	vec3 tile = p / 0.085;
+	if (finish == WOOD) {
+		tile.z *= 0.23;
+	}
+	return texture(surface_detail, tile.zy).rgb * weight.x
+		+ texture(surface_detail, tile.zx).rgb * weight.y
+		+ texture(surface_detail, tile.xy).rgb * weight.z;
 }
 
 // Diamond knurl height (0..1) on the plane the surface faces most.
@@ -108,6 +122,7 @@ void fragment() {
 	} else {
 		vec3 p = obj_pos;
 		ao = COLOR.r;
+		vec3 grain = surface_grain(p, obj_normal);
 		float blotch = fbm(p * 28.0);
 		float chips = fbm(p * 140.0);
 		// Fade sub-millimetre detail out with distance so it never shimmers.
@@ -123,28 +138,34 @@ void fragment() {
 		metal = metallic;
 
 		if (finish == METAL) {
-			float brushed = noise(vec3(p.x * 900.0, p.y * 900.0, p.z * 12.0));
-			rough += (brushed - 0.5) * 0.065 * detail;
+			float brush = grain.r - 0.5;
+			color *= 1.0 + brush * 0.14;
+			rough += brush * 0.34 + (blotch - 0.5) * 0.18;
+			height = brush * 0.00005;
 			color = mix(color, bare_metal, worn * 0.6);
 			rough = mix(rough, 0.28, worn);
 		} else if (finish == COATED) {
 			color = mix(color, bare_metal * 0.8, worn);
 			metal = mix(metal, 0.9, worn);
 			rough = mix(rough, 0.32, worn);
-			height = noise(p * 2200.0) * 0.00004 * detail;
+			float rub = (grain.r - 0.5) * 0.24;
+			color *= 1.0 + rub;
+			rough += rub + (grain.g - 0.62) * 0.16;
+			height = (grain.g - 0.62) * 0.000075;
 		} else if (finish == POLYMER) {
 			color = mix(color, color * 1.45 + 0.02, worn * 0.7);
 			rough = mix(rough, rough + 0.08, worn);
-			height = noise(p * 1600.0) * 0.00008 * detail;
+			float stipple = grain.g - 0.62;
+			color *= 1.0 + stipple * 0.18;
+			rough += stipple * 0.22;
+			height = stipple * 0.00018;
 		} else {
-			float rings = length(p.xy + vec2(0.0, 0.35)) * 180.0 + fbm(p * vec3(40.0, 40.0, 3.0)) * 8.0;
-			float grain = smoothstep(0.6, 1.0, abs(fract(rings) - 0.5) * 2.0) * mix(0.4, 1.0, blotch);
-			float pores = mix(0.5, noise(vec3(p.x * 1400.0, p.y * 1400.0, p.z * 60.0)), detail);
-			color *= mix(1.1, 0.72, grain) * mix(0.94, 1.04, pores);
-			rough += grain * 0.12;
-			color = mix(color, color * 1.6, worn * 0.6);
-			rough = mix(rough, 0.85, worn);
-			height = -grain * 0.00006 * detail;
+			float figure = grain.b;
+			color *= mix(vec3(0.46, 0.34, 0.27), vec3(1.43, 1.28, 1.08), figure);
+			rough += (0.58 - figure) * 0.38;
+			color = mix(color, color * 1.45, worn * 0.6);
+			rough = mix(rough, 0.78, worn);
+			height = (figure - 0.58) * 0.00014;
 		}
 
 		if (knurled) {

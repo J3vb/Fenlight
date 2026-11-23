@@ -1,20 +1,20 @@
 {
  "inputs": {
-  "assets/textures/gun_markings.png": "2492df26b16578ec367cb569c1e629530fd78699b52b8b9661bb8225a0e7fd62",
+  "assets/textures/gun_markings.png": "69b56978e1b3926cb05c7a5e01447b0161ab2ae23ca32ffa0608c8d014d5a3fb",
   "tools/assets/gun_bake.py": "1918df34e4b5d837e68398a34eced29d188467d22dfb6026f6b2bae045f67d5f",
-  "tools/assets/rifle_model.py": "af95298b5997e0440fd3492a677b564b13a91898c16c4d109e4129540c261ed5"
+  "tools/assets/rifle_model.py": "faddc98249db97e0e68b0d13797a46a3bfec5a4d8e8ccf231d54197692f30ca1"
  },
  "map_size": 2048,
  "source": {
   "bounds_mm": [
    -40.0,
-   -417.9,
+   -418.0,
    -198.0,
    40.0,
    627.0,
    107.7
   ],
-  "triangles": 6602
+  "triangles": 6554
  },
- "triangles": 15016
+ "triangles": 15008
 }

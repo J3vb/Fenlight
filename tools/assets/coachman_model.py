@@ -98,17 +98,30 @@ def rib_parts(metal, black):
 
 def stock_parts(m, receiver, black, wood, checker):
     """Sculpted full shoulder stock with a swept wrist, cheek comb and fitted rubber butt pad."""
-    stock = g.slab(
-        "Stock",
+    stock = g.stock_shell(
         [
-            (-0.103, 0.04),
-            (-0.15, 0.029),
-            (-0.21, 0.041),
-            (-0.42, 0.027),
-            (-0.442, 0.006),
-            (-0.451, -0.1),
-            (-0.425, -0.113),
-            (-0.296, -0.091),
+            (-0.458, 0.008, -0.095, 0.017, "pad"),
+            (-0.454, 0.017, -0.101, 0.022, "pad"),
+            (-0.441, 0.021, -0.101, 0.024, "wood"),
+            (-0.427, 0.028, -0.102, 0.024, "wood"),
+            (-0.365, 0.035, -0.103, 0.025, "wood"),
+            (-0.293, 0.040, -0.086, 0.024, "wood"),
+            (-0.246, 0.040, -0.065, 0.021, "wood"),
+            (-0.225, 0.038, -0.050, 0.019, "wood"),
+        ],
+        wood,
+        black,
+        checker,
+    )
+    # The carved cheek tapers into a separate checkered wrist shaped to the glove.
+    wrist = g.slab(
+        "Wrist",
+        [
+            (-0.103, 0.040),
+            (-0.150, 0.029),
+            (-0.210, 0.041),
+            (-0.246, 0.039),
+            (-0.246, -0.066),
             (-0.205, -0.046),
             (-0.171, -0.022),
             (-0.148, -0.039),
@@ -117,34 +130,37 @@ def stock_parts(m, receiver, black, wood, checker):
         ],
         0.045,
         wood,
-        bevel=0.007,
+        bevel=0.005,
     )
-    pad = g.slab(
-        "ButtPad", [(-0.436, 0.018), (-0.451, 0.011), (-0.462, -0.103), (-0.447, -0.111)], 0.05, black, bevel=0.003
-    )
-    parts = [pad]
+    panels = [wrist]
     for side in (-1, 1):
-        parts.append(
+        panels.append(
             g.slab(
                 "WristCheckering",
-                [(-0.115, 0.023), (-0.15, 0.014), (-0.177, -0.008), (-0.151, -0.027), (-0.126, -0.016)],
+                [
+                    (-0.115, 0.023),
+                    (-0.15, 0.014),
+                    (-0.177, -0.008),
+                    (-0.151, -0.027),
+                    (-0.126, -0.016),
+                ],
                 0.001,
                 checker,
                 x=side * 0.0226,
             )
         )
-    m.join_into(stock, parts)
+    m.join_into(stock, panels)
     m.attach(stock, (0, -0.107, 0.015), receiver)
 
 
 def forepiece(m, receiver, metal, wood, checker):
     """Rounded wood fore-end under the barrel block, checkered panels and a release latch."""
-    fore = g.slab(
+    fore = g.contoured(
         "Foregrip",
         [(0.064, 0.018), (0.257, 0.025), (0.28, 0.014), (0.267, -0.006), (0.112, -0.018), (0.067, -0.007)],
         0.052,
         wood,
-        bevel=0.006,
+        roll=0.009,
     )
     parts = [g.slab("ReleaseLatch", g.rounded(0.128, -0.018, 0.194, -0.013, 0.002), 0.016, metal)]
     for side in (-1, 1):
@@ -208,3 +224,4 @@ def build(m) -> None:
     forepiece(m, receiver, metal, wood, checker)
     moving_parts(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.078, 0.046, 0.027, 0.048, 0.0008), 0.001, 0.0262, metal)
+    g.stamp(m, "coachman_2b", "Receiver", (-0.0272, -0.015, 0.019), 0.044)

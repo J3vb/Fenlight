@@ -83,7 +83,7 @@ def lower(black, tan):
         g.slab(
             "WellLip", [(0.015, -0.066), (0.12, -0.066), (0.122, -0.079), (0.013, -0.079)], 0.052, black, bevel=0.002
         ),
-        g.slab("Grip", grip, 0.032, tan, bevel=0.004),
+        g.contoured("Grip", grip, 0.032, tan, roll=0.011),
         g.slab("GripCap", g.rounded(-0.156, -0.17, -0.119, -0.158, 0.004), 0.035, black, bevel=0.001),
         g.slab("TriggerGuard", guard, 0.012, black, bevel=0.0015),
     ]
@@ -147,12 +147,12 @@ def handguard(m, receiver, metal, black, tan):
     m.attach(shell, (0, 0.155, BORE_Z), receiver)
     cap = g.lathe("GuardCollar", [(0.029, 0.146), (0.029, 0.16)], (0, 0, BORE_Z), black, 16)
     m.attach(cap, (0, 0.15, BORE_Z), receiver)
-    grip = g.slab(
+    grip = g.contoured(
         "Foregrip",
         [(0.22, -0.013), (0.296, -0.013), (0.283, -0.033), (0.244, -0.067), (0.225, -0.062)],
         0.029,
         black,
-        bevel=0.003,
+        roll=0.009,
     )
     m.attach(grip, (0, 0.25, -0.013), receiver)
 
@@ -177,13 +177,13 @@ def stock(m, receiver, metal, black, tan):
     window = [(-0.222, 0.009), (-0.356, 0.014), (-0.36, -0.06), (-0.232, -0.027)]
     g.cut(frame, [g.slab("StockWindow", window, 0.075, black, bevel=0.004)])
     pieces = [
-        g.slab("CheekRest", g.rounded(-0.37, 0.036, -0.21, 0.052, 0.007), 0.045, black, bevel=0.002),
-        g.slab(
+        g.contoured("CheekRest", g.rounded(-0.37, 0.036, -0.21, 0.052, 0.007), 0.045, black, roll=0.008),
+        g.contoured(
             "ButtPad",
             [(-0.4, 0.04), (-0.413, 0.036), (-0.416, -0.095), (-0.403, -0.105), (-0.395, -0.095)],
             0.048,
             black,
-            bevel=0.003,
+            roll=0.006,
         ),
         g.lathe("StockHinge", [(0.012, -0.026), (0.012, 0.026)], (0, -0.174, 0.01), metal, 16, axis="x"),
     ]
@@ -313,3 +313,4 @@ def build(m) -> None:
     sights(m, receiver, metal, black)
     bolt(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.13, 0.043, 0.12, 0.045, 0.0008), 0.0006, 0.026, metal)
+    g.stamp(m, "sentry_br3", "Receiver", (-0.026, -0.085, 0.019), 0.085)

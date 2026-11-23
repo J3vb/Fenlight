@@ -26,6 +26,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import turnarounds
 from render_weapon_comparison import linear
+from weapon_preview_materials import gun_preview
 
 ELEVATION = math.radians(12)
 
@@ -145,6 +146,16 @@ def _glass_preview(material):
     links.new(surface.outputs["BSDF"], output.inputs["Surface"])
 
 
+def preview_materials(path, meshes):
+    materials = {mat for obj in meshes for mat in obj.data.materials if mat}
+    if path.parent.name in ("weapons", "throwables"):
+        for material in materials:
+            gun_preview(material, path.stem)
+    elif path.parent.name == "gear" and path.stem.startswith(("charm_", "implant_")):
+        for material in materials:
+            _gear_preview(material)
+
+
 def import_model(path):
     """Import a .glb, centred on a turntable pivot and scaled so every view fits a 1 m frame."""
     bpy.ops.import_scene.gltf(filepath=str(path), disable_bone_shape=True)
@@ -164,9 +175,7 @@ def import_model(path):
             obj.parent = offset
     bpy.context.view_layer.update()
     meshes = [obj for obj in imported if obj.type == "MESH"]
-    if path.parent.name == "gear" and path.stem.startswith(("charm_", "implant_")):
-        for material in {material for obj in meshes for material in obj.data.materials if material}:
-            _gear_preview(material)
+    preview_materials(path, meshes)
     corners = [obj.matrix_world @ Vector(corner) for obj in meshes for corner in obj.bound_box]
     low = Vector(tuple(min(c[i] for c in corners) for i in range(3)))
     high = Vector(tuple(max(c[i] for c in corners) for i in range(3)))

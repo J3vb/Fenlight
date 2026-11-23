@@ -46,7 +46,9 @@ def lower_parts(metal, black, olive):
     """The lower body and trigger group keep continuous extruded outlines."""
     parts = [
         g.slab("Lower", [(-0.21, -0.023), (0.08, -0.023), (0.06, -0.064), (-0.18, -0.064)], 0.064, black, bevel=0.003),
-        g.slab("Grip", [(-0.1, -0.06), (-0.145, -0.06), (-0.183, -0.172), (-0.137, -0.178)], 0.038, olive, bevel=0.005),
+        g.contoured(
+            "Grip", [(-0.1, -0.06), (-0.145, -0.06), (-0.183, -0.172), (-0.137, -0.178)], 0.038, olive, roll=0.011
+        ),
         g.slab(
             "GripHeel",
             [(-0.181, -0.16), (-0.136, -0.166), (-0.137, -0.179), (-0.186, -0.177)],
@@ -154,7 +156,7 @@ def belt_box(m, body, metal, black, olive):
     m.attach(box, (-0.095, 0.07, -0.055), body)
 
 
-def belt(m, body, metal, black):
+def belt(m, body, brass, black):
     """Each visible cartridge and link belongs to one continuous belt mesh."""
     rounds = []
     for i in range(10):
@@ -165,7 +167,7 @@ def belt(m, body, metal, black):
                 f"Round{i}",
                 [(0.0055, 0.018), (0.006, 0.02), (0.006, 0.065), (0.004, 0.07), (0.004, 0.082), (0.001, 0.09)],
                 (x, 0, z),
-                metal,
+                brass,
                 8,
             )
         )
@@ -197,7 +199,9 @@ def barrel(m, body, metal, black, olive):
         g.lathe("GasTube", [(0.01, 0.22), (0.01, 0.67)], (0, 0, -0.007), black, 12),
         g.lathe("GasBlock", [(0.027, 0.64), (0.027, 0.665), (0.02, 0.675)], (0, 0, BORE_Z), black, 12),
         flash_hider(black),
-        g.slab("Foregrip", [(0.23, -0.025), (0.42, -0.025), (0.4, 0.014), (0.25, 0.014)], 0.062, olive, bevel=0.004),
+        g.contoured(
+            "Foregrip", [(0.23, -0.025), (0.42, -0.025), (0.4, 0.014), (0.25, 0.014)], 0.062, olive, roll=0.009
+        ),
         g.slab(
             "FrontPost",
             [(0.66, 0.055), (0.68, 0.055), (0.675, 0.081), (0.673, SIGHT_Z), (0.667, SIGHT_Z), (0.665, 0.081)],
@@ -239,33 +243,24 @@ def flash_hider(black):
 
 def stock(m, body, black, olive):
     """Full shoulder stock, low offset carry handle and the rearward folded bipod."""
-    stock = g.slab(
-        "Stock",
+    stock = g.stock_shell(
         [
-            (-0.22, 0.045),
-            (-0.43, 0.05),
-            (-0.46, 0.025),
-            (-0.46, -0.114),
-            (-0.43, -0.12),
-            (-0.3, -0.055),
-            (-0.22, -0.04),
+            (-0.475, 0.024, -0.117, 0.023, "pad"),
+            (-0.471, 0.032, -0.123, 0.028, "pad"),
+            (-0.459, 0.034, -0.122, 0.027, "body"),
+            (-0.431, 0.046, -0.117, 0.027, "body"),
+            (-0.403, 0.053, -0.105, 0.026, "body"),
+            (-0.298, 0.050, -0.052, 0.024, "body"),
+            (-0.218, 0.045, -0.038, 0.022, "body"),
         ],
-        0.052,
         olive,
-        bevel=0.004,
+        black,
+        olive,
     )
-    pad = g.slab(
-        "ButtPad", [(-0.457, 0.03), (-0.475, 0.024), (-0.475, -0.117), (-0.457, -0.126)], 0.06, black, bevel=0.004
+    cheek = g.contoured(
+        "CheekRest", [(-0.4, 0.040), (-0.26, 0.038), (-0.26, 0.054), (-0.39, 0.061)], 0.049, black, roll=0.008
     )
-    m.join_into(
-        stock,
-        [
-            pad,
-            g.slab(
-                "CheekRest", [(-0.4, 0.045), (-0.26, 0.04), (-0.26, 0.059), (-0.39, 0.064)], 0.058, black, bevel=0.003
-            ),
-        ],
-    )
+    m.join_into(stock, [cheek])
     m.attach(stock, (0, -0.22, 0.0), body)
 
 
@@ -288,6 +283,22 @@ def furniture(m, body, metal, black):
         x=0.047,
         bevel=0.003,
     )
+    pads = []
+    for y in (0.199, 0.38):
+        pads.append(
+            g.slab(
+                "HandleFoot",
+                [(y - 0.011, 0.025), (y + 0.011, 0.025), (y + 0.008, 0.060), (y - 0.008, 0.060)],
+                0.040,
+                metal,
+                x=0.033,
+                bevel=0.002,
+            )
+        )
+    for i in range(6):
+        y = 0.244 + i * 0.018
+        pads.append(g.slab("HandleWrap", g.rounded(y, 0.124, y + 0.014, 0.147, 0.003, steps=2), 0.022, black, x=0.047))
+    m.join_into(carry, pads)
     m.attach(carry, (0.047, 0.19, 0.056), body)
     bipod = g.lathe("Bipod", [(0.012, -0.042), (0.012, 0.042)], (0, 0.64, -0.015), metal, 12, axis="x")
     pieces = []
@@ -317,7 +328,8 @@ def build(m) -> None:
     body = receiver(m, metal, black, olive)
     feed_cover(m, body, metal, black)
     belt_box(m, body, metal, black, olive)
-    belt(m, body, metal, black)
+    brass = m.material("Brass", m.srgb("#AE9160"), metallic=0.78, roughness=0.46)
+    belt(m, body, brass, black)
     barrel(m, body, metal, black, olive)
     stock(m, body, black, olive)
     furniture(m, body, metal, black)
@@ -334,3 +346,4 @@ def build(m) -> None:
     m.attach(bolt, (0.043, -0.025, 0.018), body)
 
     g.add_inlays(m, body, g.rounded(-0.16, 0.057, 0.14, 0.059, 0.0008), 0.0008, 0.0402, metal)
+    g.stamp(m, "bastion_lmg", "Receiver", (-0.04, -0.085, 0.019), 0.085)

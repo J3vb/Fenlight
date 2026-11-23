@@ -37,52 +37,37 @@ def action(metal, black):
 
 def stock(m, receiver, wood, black, checker):
     """Slim dropped comb, rounded wrist and thick rubber butt pad."""
-    outline = [
-        (-0.15, 0.017),
-        (-0.21, 0.025),
-        (-0.28, 0.009),
-        (-0.45, 0.003),
-        (-0.475, -0.005),
-        (-0.477, -0.105),
-        (-0.45, -0.112),
-        (-0.31, -0.065),
-        (-0.245, -0.055),
-        (-0.195, -0.077),
-        (-0.17, -0.063),
-        (-0.155, -0.03),
-    ]
-    body = g.slab("Stock", outline, 0.047, wood, bevel=0.006)
-    parts = [
-        g.slab(
-            "ButtPad",
-            [(-0.477, -0.005), (-0.489, -0.008), (-0.491, -0.105), (-0.477, -0.109)],
-            0.05,
-            black,
-            bevel=0.003,
-        ),
-    ]
-    for side in (-1, 1):
-        parts.append(
-            g.slab(
-                "WristCheckering",
-                [(-0.17, -0.035), (-0.235, -0.018), (-0.253, -0.05), (-0.202, -0.068), (-0.181, -0.057)],
-                0.001,
-                checker,
-                x=side * 0.0236,
-            )
-        )
-    m.join_into(body, parts)
+    body = g.stock_shell(
+        [
+            (-0.490, -0.010, -0.104, 0.018, "pad"),
+            (-0.486, -0.004, -0.109, 0.022, "pad"),
+            (-0.476, -0.002, -0.110, 0.023, "wood"),
+            (-0.448, 0.003, -0.109, 0.023, "wood"),
+            (-0.374, 0.006, -0.085, 0.023, "wood"),
+            (-0.310, 0.009, -0.065, 0.021, "wood"),
+            (-0.265, 0.014, -0.054, 0.0235, "wood"),
+            (-0.241, 0.019, -0.055, 0.0235, "panel"),
+            (-0.212, 0.025, -0.070, 0.0235, "panel"),
+            (-0.195, 0.024, -0.076, 0.0235, "panel"),
+            (-0.177, 0.021, -0.066, 0.0235, "wood"),
+            (-0.150, 0.017, -0.027, 0.0235, "wood"),
+        ],
+        wood,
+        black,
+        checker,
+        wrist=-0.282,
+    )
     m.attach(body, (0, -0.16, -0.013), receiver)
 
 
 def fore_end(m, receiver, metal, wood, checker):
     """Rounded checkered wood fore-end, bounded by metal bands around barrel and tube."""
-    body = g.slab(
+    body = g.contoured(
         "Foregrip",
         [(0.13, -0.012), (0.43, -0.012), (0.448, -0.025), (0.438, -0.05), (0.15, -0.05), (0.13, -0.039)],
         0.05,
         wood,
-        bevel=0.005,
+        roll=0.009,
     )
     parts = []
     for side in (-1, 1):
@@ -183,3 +168,4 @@ def build(m) -> None:
     sights(m, receiver, black)
     moving_parts(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.13, 0.018, -0.03, 0.02, 0.0008), 0.001, 0.0237, metal)
+    g.stamp(m, "fieldhand_lever", "Receiver", (-0.0235, -0.085, 0.028), 0.085)

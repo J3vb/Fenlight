@@ -76,7 +76,7 @@ def receiver_details(metal, black, polymer):
 
 def grip(m, receiver, black, polymer):
     """Broad pistol grip with grip panels and an open trigger guard."""
-    grip = g.slab(
+    grip = g.contoured(
         "Grip",
         [
             (-0.105, -0.045),
@@ -91,7 +91,7 @@ def grip(m, receiver, black, polymer):
         ],
         0.036,
         polymer,
-        bevel=0.004,
+        roll=0.011,
     )
     pieces = [
         g.slab("GripCap", g.rounded(-0.2, -0.187, -0.152, -0.174, 0.004), 0.04, black, bevel=0.001),
@@ -156,14 +156,14 @@ def stock(m, receiver, black, polymer):
         for side in (-1, 1)
     ]
     g.cut(butt, cuts)
-    pad = g.slab(
+    pad = g.contoured(
         "ButtPad",
         [(-0.478, 0.038), (-0.493, 0.037), (-0.498, -0.109), (-0.483, -0.115), (-0.475, -0.104)],
         0.057,
         black,
-        bevel=0.003,
+        roll=0.006,
     )
-    cheek = g.slab("CheekRest", g.rounded(-0.423, 0.035, -0.24, 0.058, 0.008), 0.048, black, bevel=0.002)
+    cheek = g.contoured("CheekRest", g.rounded(-0.423, 0.035, -0.24, 0.058, 0.008), 0.048, black, roll=0.008)
     parts = [pad, cheek]
     for z in (-0.084, -0.034, 0.016):
         parts.append(g.slab("PadRib", g.rounded(-0.497, z, -0.492, z + 0.007, 0.002), 0.059, black))
@@ -298,3 +298,4 @@ def build(m) -> None:
     brake_and_sights(m, receiver, barrel, metal, black)
     moving_parts(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.166, 0.048, 0.105, 0.051, 0.001), 0.001, 0.0312, metal)
+    g.stamp(m, "rampart_br", "Receiver", (-0.031, -0.085, 0.019), 0.085)

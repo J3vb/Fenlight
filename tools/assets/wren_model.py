@@ -73,7 +73,7 @@ def grip(m, receiver, black, polymer, checker):
         (-0.108, -0.108),
         (-0.094, -0.056),
     ]
-    part = g.slab("Grip", outline, 0.036, polymer, bevel=0.004)
+    part = g.contoured("Grip", outline, 0.036, polymer, roll=0.011)
     core = [(-0.077, -0.008), (-0.044, -0.008), (-0.063, -0.124), (-0.093, -0.124)]
     g.cut(part, [g.slab("MagazineWell", core, 0.026, black)])
     panels = []
@@ -273,7 +273,7 @@ def build(m) -> None:
     black = m.material("MatteBlack", m.MATTE_BLACK, roughness=0.75)
     color = m.srgb("#5F6D68")
     polymer = m.material("GreyPolymer", color, roughness=0.8)
-    checker = m.material("GreyPolymerKnurled", color, roughness=0.85)
+    checker = m.material("GreyPolymerKnurled", m.srgb("#2F393B"), roughness=0.85)
     receiver = frame(m, metal, black, polymer)
     grip(m, receiver, black, polymer, checker)
     slide_part = slide(m, receiver, metal, black)
@@ -282,3 +282,4 @@ def build(m) -> None:
     brace(m, receiver, metal, black, polymer)
     trigger(m, receiver, metal, black)
     g.add_inlays(m, slide_part, g.rounded(0.045, 0.035, 0.129, 0.037, 0.0008), 0.0007, 0.0171, metal)
+    g.stamp(m, "wren_mp", "Slide", (-0.017, 0.055, 0.026), 0.044)

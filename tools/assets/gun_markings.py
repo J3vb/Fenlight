@@ -1,6 +1,6 @@
 """Draws the gun markings atlas: Oriel logo, magazine tape, shell hull and brass.
 
-One 256 x 256 PNG shared by every concept gun (docs/plans/guns-concept.md). The
+One 1024 x 1024 PNG shared by the roster (docs/plans/guns-concept.md). The
 `Markings` material samples it through the second UV map that `gun_parts.marking`
 writes. Pure Python, no image library, so the output is the same on every machine.
 
@@ -15,6 +15,8 @@ import sys
 import zlib
 from pathlib import Path
 
+import gun_plates
+
 SIZE = 256
 OUT = Path(__file__).resolve().parents[2] / "assets" / "textures" / "gun_markings.png"
 
@@ -26,6 +28,8 @@ REGIONS = {
     "brass": (192, 32, 256, 64),
     "black": (0, 192, 64, 256),
 }
+
+REGIONS.update({name: gun_plates.rect(i) for i, name in enumerate(gun_plates.STAMPS)})
 
 BLACK = (28, 28, 30)  # MatteBlack as it renders after the baked shading
 PRINT = (176, 178, 172)
@@ -63,7 +67,7 @@ def _shade(color: tuple, k: float) -> tuple:
 def _dot(img: list, cx: float, cy: float, r: float, color: tuple) -> None:
     for y in range(math.floor(cy - r), math.ceil(cy + r) + 1):
         for x in range(math.floor(cx - r), math.ceil(cx + r) + 1):
-            if 0 <= x < SIZE and 0 <= y < SIZE and (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
+            if 0 <= y < len(img) and 0 <= x < len(img[y]) and (x - cx) ** 2 + (y - cy) ** 2 <= r * r:
                 img[y][x] = color
 
 
@@ -145,12 +149,16 @@ def draw() -> list:
 
 
 def png_bytes(img: list) -> bytes:
+    # Original UVs and the single-colour back of each printed plate stay in place.
+    expanded = [[pixel for pixel in row for _ in range(4)] for row in img]
+    img = [row.copy() for row in expanded for _ in range(4)]
+    gun_plates.draw(img, _line)
     raw = b"".join(b"\x00" + bytes(c for px in row for c in px) for row in img)
 
     def chunk(kind: bytes, data: bytes) -> bytes:
         return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
 
-    header = struct.pack(">IIBBBBB", SIZE, SIZE, 8, 2, 0, 0, 0)
+    header = struct.pack(">IIBBBBB", len(img[0]), len(img), 8, 2, 0, 0, 0)
     return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(raw, 9)) + chunk(b"IEND", b"")
 
 

@@ -137,7 +137,7 @@ def lower_controls(m, receiver, metal, black):
         (-0.084, -0.085),
         (-0.078, -0.068),
     ]
-    grip = g.slab("Grip", grip_shape, 0.032, black, bevel=0.005)
+    grip = g.contoured("Grip", grip_shape, 0.032, black, roll=0.011)
     panels = [
         g.slab(
             f"GripPanel{x}",
@@ -171,10 +171,10 @@ def stock(m, receiver, metal, black, tan):
             black,
             bevel=0.003,
         ),
-        g.slab(
-            "ButtPad", [(-0.345, 0.034), (-0.36, 0.034), (-0.364, -0.075), (-0.349, -0.077)], 0.049, tan, bevel=0.003
+        g.contoured(
+            "ButtPad", [(-0.345, 0.034), (-0.36, 0.034), (-0.364, -0.075), (-0.349, -0.077)], 0.049, tan, roll=0.006
         ),
-        g.slab("CheekRest", g.rounded(-0.31, 0.012, -0.2, 0.03, 0.006), 0.042, black, bevel=0.003),
+        g.contoured("CheekRest", g.rounded(-0.31, 0.012, -0.2, 0.03, 0.006), 0.042, black, roll=0.008),
     ]
     for x in (-1, 1):
         parts += [
@@ -254,3 +254,4 @@ def build_kestrel_smg(m):
     moving_parts(m, receiver, metal, black, markings)
     barrel(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.112, 0.029, 0.098, 0.031, 0.0008), 0.001, 0.025, metal)
+    g.stamp(m, "kestrel_smg", "Receiver", (-0.025, -0.085, 0.019), 0.085)

@@ -76,7 +76,7 @@ def controls(metal, black):
 
 def grip(m, receiver, black, grey):
     """Raked polymer grip with inset panels and a rubber cap."""
-    grip = g.slab(
+    grip = g.contoured(
         "Grip",
         [
             (-0.08, -0.041),
@@ -90,7 +90,7 @@ def grip(m, receiver, black, grey):
         ],
         0.032,
         grey,
-        bevel=0.004,
+        roll=0.011,
     )
     panels = [
         g.slab(
@@ -219,10 +219,10 @@ def stock(m, receiver, black, grey):
     )
     g.cut(butt, [opening])
     parts = [
-        g.slab(
-            "ButtPad", [(-0.341, 0.028), (-0.353, 0.028), (-0.355, -0.08), (-0.341, -0.087)], 0.045, black, bevel=0.003
+        g.contoured(
+            "ButtPad", [(-0.341, 0.028), (-0.353, 0.028), (-0.355, -0.08), (-0.341, -0.087)], 0.045, black, roll=0.006
         ),
-        g.slab("CheekRest", g.rounded(-0.313, 0.021, -0.206, 0.034, 0.004), 0.041, black, bevel=0.002),
+        g.contoured("CheekRest", g.rounded(-0.313, 0.021, -0.206, 0.034, 0.004), 0.041, black, roll=0.008),
     ]
     m.join_into(butt, parts)
     m.attach(butt, (0, -0.145, 0.008), receiver)
@@ -327,3 +327,4 @@ def build(m) -> None:
     sights(m, receiver, metal, black)
     moving_parts(m, receiver, metal, black, grey)
     g.add_inlays(m, receiver, g.rounded(-0.126, 0.037, 0.125, 0.039, 0.0008), 0.0006, 0.0237, metal)
+    g.stamp(m, "nightjar_sd", "Receiver", (-0.0235, -0.09, 0.019), 0.085)

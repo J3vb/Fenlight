@@ -108,7 +108,7 @@ def frame_controls(black, metal):
 
 def grip_parts(m, frame, polymer, checker, black):
     """Canted grip with sculpted backstrap, inset checkered panels and a separate magazine opening."""
-    grip = g.slab(
+    grip = g.contoured(
         "Grip",
         [
             (-0.045, -0.004),
@@ -125,7 +125,7 @@ def grip_parts(m, frame, polymer, checker, black):
         ],
         0.032,
         polymer,
-        bevel=0.003,
+        roll=0.011,
     )
     g.cut(
         grip,
@@ -222,7 +222,7 @@ def build(m) -> None:
     metal = m.material("GunMetal", m.GUN_METAL, metallic=0.8, roughness=0.4)
     black = m.material("MatteBlack", m.MATTE_BLACK, roughness=0.75)
     polymer = m.material("GreyPolymer", m.srgb("#5F6D68"), roughness=0.8)
-    checker = m.material("GreyPolymerKnurled", m.srgb("#5F6D68"), roughness=0.85)
+    checker = m.material("GreyPolymerKnurled", m.srgb("#2F393B"), roughness=0.85)
     frame, details = frame_parts(black, polymer, metal)
     m.join_into(frame, details)
     grip_parts(m, frame, polymer, checker, black)
@@ -233,3 +233,4 @@ def build(m) -> None:
     m.attach(slide, (0, -0.035, BORE_Z), bolt)
     sights(m, slide, black, metal)
     g.add_inlays(m, slide, g.rounded(0.06, 0.027, 0.146, 0.029, 0.0008), 0.0006, 0.016, metal)
+    g.stamp(m, "warden_p9", "Slide", (-0.016, 0.085, 0.023), 0.044)

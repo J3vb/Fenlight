@@ -11,14 +11,18 @@
 extends EditorScenePostImport
 
 const SHADER: Shader = preload("res://assets/materials/gun_finish.gdshader")
+const SURFACE_DETAIL: Texture2D = preload("res://assets/textures/weapons/surface_detail.png")
 const FINISHES: Dictionary[String, int] = {
 	"GunMetal": 0,
+	"Brass": 0,
 	"MatteBlack": 1,
+	"OliveCoat": 1,
 	"Tan": 2,
 	"OlivePolymer": 2,
 	"GreyPolymer": 2,
 	"Wood": 3,
 	"Markings": 2,
+	"FactoryPrint": 2,
 }
 const KNURLED: String = "Knurled"
 const WORN: String = "Worn"
@@ -71,11 +75,12 @@ static func finish_material(source: BaseMaterial3D) -> Material:
 	material.set_shader_parameter(&"metallic", source.metallic)
 	material.set_shader_parameter(&"roughness", source.roughness)
 	material.set_shader_parameter(&"finish", FINISHES[base])
+	material.set_shader_parameter(&"surface_detail", SURFACE_DETAIL)
 	material.set_shader_parameter(&"knurled", knurled)
 	if worn or base == MARKINGS:
 		material.set_shader_parameter(&"wear", WORN_WEAR)
 		material.set_shader_parameter(&"grime", WORN_GRIME)
-	if base == MARKINGS:
+	if base == MARKINGS or base == "FactoryPrint":
 		material.set_shader_parameter(&"marked", true)
 		material.set_shader_parameter(&"markings_map", load(MARKINGS_MAP) as Texture2D)
 	return material
