@@ -99,17 +99,52 @@ func test_reach_lifts_the_arms() -> void:
 	assert_lt(rig.get_offset(&"ArmL").x, relaxed - 0.3, "close target: arms come up")
 
 
-func test_attack_raises_then_slams_arms() -> void:
-	var zombie: Zombie = _spawn(WALKER)
-	var rig: ZombieRig = zombie.visual
+func test_upright_walk_keeps_the_wrists_near_shoulder_width() -> void:
+	for kind: String in ["shambler", "shambler_guard", "bloater", "glower"]:
+		var rig: ZombieRig = ZombieRig.new()
+		rig.model = load("res://assets/models/zombies/%s.glb" % kind) as PackedScene
+		add_child_autofree(rig)
+		var widest: float = 0.0
+		# Include the spawn pose, visible before the first walk update.
+		for frame: int in range(-1, 24):
+			if frame >= 0:
+				rig.pose_walk(1.6, frame / 30.0, 1.0 / 24.0)
+			var wrists: float = absf(_bone_position(rig, "hand_L").x - _bone_position(rig, "hand_R").x)
+			var shoulders: float = absf(_bone_position(rig, "upperarm_L").x - _bone_position(rig, "upperarm_R").x)
+			widest = maxf(widest, wrists - shoulders)
+		assert_lt(widest, 0.45, kind + " carries the elbows in throughout the stride")
+
+
+func test_shambler_rakes_forward_at_damage_time_and_recovers() -> void:
+	var rig: ZombieRig = ZombieRig.new()
+	rig.model = load("res://assets/models/zombies/shambler.glb") as PackedScene
+	add_child_autofree(rig)
 	rig.pose_attack(0.0)
-	assert_almost_eq(rig.get_offset(&"ArmR").x, 0.0, 0.01, "attack starts from rest")
+	var ready: Vector3 = _bone_position(rig, "hand_R")
+	rig.pose_attack(ZombieRig.ATTACK_DRAW)
+	var drawn: Vector3 = _bone_position(rig, "hand_R")
+	assert_gt(drawn.y, ready.y + 0.12, "raises the striking hand before the swipe")
+	var elbow: float = rig.get_offset(&"forearm_R").x
 	rig.pose_attack(1.0)
-	for bone: String in ["upperarm_L", "upperarm_R"]:
-		assert_almost_eq(_bone_offset(rig, bone).x, -ZombieRig.ATTACK_LIFT, 0.01, "both upperarms lift")
-	assert_lt(_bone_offset(rig, "forearm_L").x, -0.3, "elbow bends during the swing")
+	var contact: Vector3 = _bone_position(rig, "hand_R")
+	var skeleton: Skeleton3D = _skeleton(rig)
+	var hand: int = skeleton.find_bone("hand_R")
+	var turn: Basis = skeleton.get_bone_global_pose(hand).basis * skeleton.get_bone_global_rest(hand).basis.inverse()
+	assert_lt(turn.z.y, -0.5, "turns the forward-facing rest palm down at contact")
+	assert_lt(contact.z, drawn.z - 0.25, "drives the wrist forward by the hit frame")
+	assert_lt(contact.z, _bone_position(rig, "hand_L").z - 0.15, "leads with one hand")
+	assert_gt(rig.get_offset(&"forearm_R").x, elbow + 0.5, "extends the bent elbow")
+	rig.pose_attack(1.34)
+	var swept: Vector3 = _bone_position(rig, "hand_R")
+	assert_lt(swept.x, contact.x - 0.05, "rakes across the target after contact")
+	assert_lt(swept.y, contact.y - 0.04, "follows through below the hit")
 	rig.pose_attack(2.0)
-	assert_almost_eq(rig.get_offset(&"ArmR").x, ZombieRig.ATTACK_DROP, 0.01, "arms slammed down after strike")
+	assert_almost_eq(_bone_position(rig, "hand_R").distance_to(ready), 0.0, 0.001, "recovers")
+
+
+func _bone_position(rig: ZombieRig, bone: String) -> Vector3:
+	var skeleton: Skeleton3D = _skeleton(rig)
+	return skeleton.to_global(skeleton.get_bone_global_pose(skeleton.find_bone(bone)).origin)
 
 
 func test_death_disables_hit_zones_and_goes_limp() -> void:
@@ -222,7 +257,12 @@ func test_vault_pose_hops_and_reaches_forward() -> void:
 func test_walk_and_vault_bend_the_new_elbows_and_knees() -> void:
 	var rig: ZombieRig = _spawn(WALKER).visual
 	rig.pose_walk(2.0, 0.0, 0.15)
-	assert_lt(_bone_offset(rig, "forearm_L").x, -0.1, "walk has a slight elbow bend")
+	# A forearm can roll about its length. Measure the bend using the elbow-to-wrist direction.
+	var skeleton: Skeleton3D = _skeleton(rig)
+	var forearm: int = skeleton.find_bone("forearm_L")
+	var axis: Vector3 = skeleton.get_bone_global_rest(forearm).basis.y.normalized()
+	var bent: Vector3 = Basis.from_euler(_bone_offset(rig, "forearm_L")) * axis
+	assert_gt(bent.z, axis.z + 0.20, "the leading forearm bends forward at the elbow")
 	assert_gt(_bone_offset(rig, "shin_L").x, 0.1, "forward knee bends")
 	rig.pose_vault(0.5)
 	assert_gt(_bone_offset(rig, "shin_L").x, 0.7, "vault tucks the knees")
@@ -254,3 +294,21 @@ func _bone_offset(rig: ZombieRig, bone_name: String) -> Vector3:
 	var rest: Quaternion = skeleton.get_bone_rest(bone).basis.get_rotation_quaternion()
 	var axes: Quaternion = skeleton.get_bone_global_rest(bone).basis.get_rotation_quaternion()
 	return (axes * rest.inverse() * skeleton.get_bone_pose_rotation(bone) * axes.inverse()).get_euler()
+
+
+func test_death_unwinds_the_striking_hand_and_forearm_from_contact() -> void:
+	var rig: ZombieRig = _spawn(WALKER).visual
+	rig.pose_attack(1.0)
+	var skeleton: Skeleton3D = _skeleton(rig)
+	var hand: int = skeleton.find_bone("hand_R")
+	var forearm: int = skeleton.find_bone("forearm_R")
+	var hand_start: Quaternion = skeleton.get_bone_pose_rotation(hand)
+	var forearm_start: Quaternion = skeleton.get_bone_pose_rotation(forearm)
+	var settling: Tween = rig.pose_dead()
+	settling.pause()
+	settling.custom_step(0.01)
+	assert_lt(hand_start.angle_to(skeleton.get_bone_pose_rotation(hand)), 0.1, "wrist eases out of the strike")
+	assert_lt(forearm_start.angle_to(skeleton.get_bone_pose_rotation(forearm)), 0.15, "forearm keeps its roll")
+	settling.custom_step(0.4)
+	assert_almost_eq(_bone_offset(rig, "hand_R"), Vector3.ZERO, Vector3.ONE * 0.001, "hand relaxes")
+	assert_almost_eq(_bone_offset(rig, "forearm_R"), Vector3(-0.15, 0, 0), Vector3.ONE * 0.001, "elbow relaxes")
