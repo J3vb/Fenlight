@@ -106,4 +106,5 @@ func test_intact_tank_keeps_its_specimen_visible_through_the_fluid() -> void:
 		surfaces.append(mesh.surface_get_material(i))
 	assert_has(surfaces, fluid, "the intact tank uses the translucent liquid")
 	assert_eq(fluid.transparency, BaseMaterial3D.TRANSPARENCY_ALPHA)
-	assert_between(fluid.albedo_color.a, 0.05, 0.5, "the host shows through tinted liquid")
+	assert_eq(fluid.cull_mode, BaseMaterial3D.CULL_FRONT, "the far wall of the liquid lights the silhouette")
+	assert_between(fluid.albedo_color.a, 0.05, 0.95, "the fluid transmits the room behind the tank")
