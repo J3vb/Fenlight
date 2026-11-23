@@ -216,3 +216,47 @@ func test_sprint_cancel_eases_the_hand_back_to_its_grip() -> void:
 		assert_lt(now.distance_to(last), start_gap * 0.4, "eases, no pop, at frame %d" % i)
 		last = now
 	assert_almost_eq(last, view.profile.left.wrist, Vector3.ONE * 0.005, "back on the grip after half a second")
+
+
+func test_viewmodel_kick_survives_a_slow_frame_and_matches_faster_frames() -> void:
+	var slow: Weapon = _player_with(&"kestrel_smg").weapons.current
+	var fast: Weapon = _player_with(&"kestrel_smg").weapons.current
+	for gun: Weapon in [slow, fast]:
+		gun.pose.update(1.0)
+		gun.pose.on_fired()
+	slow.pose.update(1.0 / 24.0)
+	for i: int in 5:
+		fast.pose.update(1.0 / 120.0)
+	assert_gt(slow.position.z - slow.data.hip_position.z, 0.002, "a short kick is visible at 24 fps")
+	assert_almost_eq(slow.position, fast.position, Vector3.ONE * 0.0001, "same pose at the same shot age")
+	slow.pose.update(0.5)
+	assert_almost_eq(slow.position, slow.data.hip_position, Vector3.ONE * 0.0001)
+
+
+func test_reload_has_a_body_arc_while_the_support_hand_is_away() -> void:
+	for id: StringName in [&"synapse", &"coachman_2b"]:
+		var gun: Weapon = _player_with(id).weapons.current
+		gun.instance.ammo_in_mag = 1
+		assert_true(gun.start_reload())
+		gun._reload_timer = gun._reload_duration * 0.75
+		gun.pose.update(1.0)
+		var early: float = gun.rotation.y
+		gun._reload_timer = gun._reload_duration * 0.5
+		gun.pose.update(1.0)
+		assert_gt(absf(gun.rotation.y - early), 0.012, "%s continues to turn through the reload" % id)
+		gun.tick(gun._reload_duration)
+		gun.pose.update(1.0)
+		assert_almost_eq(gun.position, gun.data.hip_position, Vector3.ONE * 0.0001)
+		assert_almost_eq(gun.rotation, Vector3.ZERO, Vector3.ONE * 0.0001)
+
+
+func test_coachman_keeps_the_receiver_in_frame_during_the_reload() -> void:
+	var gun: Weapon = _player_with(&"coachman_2b").weapons.current
+	var receiver: MeshInstance3D = gun.find_child("Receiver", true, false) as MeshInstance3D
+	gun.instance.ammo_in_mag = 1
+	assert_true(gun.start_reload())
+	for fraction: float in [0.3, 0.5, 0.7]:
+		gun._reload_timer = gun._reload_duration * (1.0 - fraction)
+		gun.pose.update(1.0)
+		var center: Vector3 = receiver.to_global(receiver.get_aabb().get_center())
+		assert_true(gun.camera.is_position_in_frustum(center), "receiver visible at %.0f%%" % (fraction * 100.0))
