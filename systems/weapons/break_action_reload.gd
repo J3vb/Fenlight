@@ -42,7 +42,7 @@ func sample(t: float, loaded: int, reserve: int) -> void:
 		_shells[i].position = _seats[i] + (carry if moving else Vector3.ZERO)
 		_shells[i].visible = (_open > 0.04 and (not moving or (i <= _held and t >= 0.28 and reserve > 0)))
 	_shell_center = _shells[_held].position
-	_follow_hand = 1.0 - smoothstep(0.52, 0.68, t)
+	_follow_hand = 1.0 - smoothstep(0.52, 0.68, t) if loaded < _shells.size() and reserve > 0 else 0.0
 	hand_weight = smoothstep(0.10, 0.29, t) * (1.0 - smoothstep(0.68, 0.85, t))
 	relax = smoothstep(0.01, 0.15, t) * (1.0 - smoothstep(0.82, 0.98, t))
 
@@ -55,8 +55,10 @@ func settle(delta: float, loaded: int) -> void:
 	relax = move_toward(relax, 0.0, step)
 	hand_weight = move_toward(hand_weight, 0.0, step)
 	_hinge.rotation.x = -0.98 * _open
-	for shell: Node3D in _shells:
-		shell.hide()
+	_follow_hand = 0.0
+	for i: int in _shells.size():
+		_shells[i].position = _seats[i]
+		_shells[i].visible = i < loaded and _open > 0.04
 
 
 ## Keep the carried props between the solved glove tips, handing them to the barrel set as they seat.

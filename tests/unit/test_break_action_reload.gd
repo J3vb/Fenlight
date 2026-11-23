@@ -76,6 +76,10 @@ func test_top_up_leaves_loaded_shell_seated_and_one_in_reserve_supplies_only_one
 			if loaded == 1:
 				assert_eq(left.position, seated)
 			RoundReload.cancel(holder.current)
+			holder.current.pose.update(1.0 / 60.0)
+			holder.arm_view.update_pose()
+			assert_eq(left.visible, loaded == 1, "a loaded shell remains visible while the barrels close")
+			assert_false(right.visible)
 			for step: int in 4:
 				holder.current.pose.update(0.05)
 				holder.arm_view.update_pose()
@@ -87,3 +91,20 @@ func test_top_up_leaves_loaded_shell_seated_and_one_in_reserve_supplies_only_one
 			_advance(holder, 1.01)
 			assert_eq(holder.current.instance.ammo_in_mag, loaded + 1)
 			holder.get_parent().free()
+
+
+func test_resupply_during_carry_leaves_both_full_chambers_seated() -> void:
+	var holder: WeaponHolder = _holder(&"coachman_2b", 0, 2)
+	var weapon: Weapon = holder.current
+	var action: BreakActionReload = weapon.pose.break_action
+	var hinge: Node3D = action.get_parent_node_3d()
+	_advance(holder, 0.35)
+	weapon.instance.refill_all()
+	_advance(holder, 0.04)
+	for side: String in ["L", "R"]:
+		var barrel: MeshInstance3D = hinge.get_node("Barrel" + side)
+		var shell: Node3D = action.get_node("Shell" + side)
+		assert_true(shell.visible)
+		assert_almost_eq(
+			shell.position, barrel.transform * (Vector3.BACK * barrel.get_aabb().end.z), Vector3.ONE * 0.0001
+		)

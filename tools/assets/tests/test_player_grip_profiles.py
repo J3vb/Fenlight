@@ -99,7 +99,12 @@ def assert_exported_cap_markers(document, binary, metadata):
     )
     base = [Vector(point) for point in accessor(document, binary, rubber["attributes"]["POSITION"])]
     indices = [item[0] for item in accessor(document, binary, rubber["indices"])]
-    for name, profile in metadata["profiles"].items():
+    poses = dict(metadata["profiles"])
+    for profile in metadata["profiles"].values():
+        if "carry" in profile:
+            carry = profile["carry"]
+            poses[carry["morph"]] = {"morph": carry["morph"], "L": carry, "R": profile["R"]}
+    for name, profile in poses.items():
         points = base
         if profile["morph"]:
             target = rubber["targets"][names.index(profile["morph"])]["POSITION"]
