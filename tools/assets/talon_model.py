@@ -91,7 +91,7 @@ def lower(metal, black, grey, knurled):
         g.slab(
             "WellLip", [(0.016, -0.057), (0.12, -0.057), (0.122, -0.067), (0.014, -0.067)], 0.052, black, bevel=0.0015
         ),
-        g.slab("Grip", grip, 0.034, grey, bevel=0.005),
+        g.contoured("Grip", grip, 0.034, grey, roll=0.011),
         g.slab("TriggerGuard", guard, 0.013, black, bevel=0.0015),
         g.lathe("Selector", [(0.009, -0.029), (0.009, -0.025)], (0, -0.09, -0.028), metal, 12, axis="x"),
         g.lathe("MagRelease", [(0.007, 0.025), (0.007, 0.031)], (0, 0.03, -0.035), metal, 12, axis="x"),
@@ -129,13 +129,13 @@ def precision_stock(m, receiver, metal, black, grey, markings):
     stock = g.slab("Stock", outline, 0.044, grey, bevel=0.004)
     g.cut(stock, [g.slab("StockWindow", [(-0.26, -0.008), (-0.37, -0.008), (-0.37, -0.052)], 0.06, grey)])
     pieces = [
-        g.slab("CheekRiser", g.rounded(-0.37, 0.046, -0.235, 0.064, 0.007), 0.04, black, bevel=0.003),
-        g.slab(
+        g.contoured("CheekRiser", g.rounded(-0.37, 0.046, -0.235, 0.064, 0.007), 0.04, black, roll=0.008),
+        g.contoured(
             "RecoilPad",
             [(-0.413, 0.036), (-0.43, 0.036), (-0.434, -0.084), (-0.418, -0.092), (-0.4, -0.088)],
             0.05,
             black,
-            bevel=0.004,
+            roll=0.007,
         ),
         g.lathe("RiserWheel", [(0.012, 0.022), (0.012, 0.03)], (0, -0.3, 0.03), metal, 16, axis="x"),
         g.slab("SlingSlot", g.rounded(-0.39, 0.0, -0.36, 0.01, 0.004), 0.002, black, x=0.0225),
@@ -286,3 +286,4 @@ def build_talon_dmr(m) -> None:
     barrel_parts(m, receiver, metal, black)
     moving_parts(m, receiver, metal, black, black)
     g.add_inlays(m, receiver, g.rounded(-0.15, 0.041, 0.145, 0.043, 0.001), 0.001, 0.0282, metal)
+    g.stamp(m, "talon_dmr", "Receiver", (-0.028, -0.085, 0.019), 0.085)

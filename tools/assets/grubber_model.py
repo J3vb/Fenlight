@@ -79,7 +79,7 @@ def grip(m, receiver, metal, black, wood, checker):
         (-0.074, -0.033),
         (-0.051, -0.012),
     ]
-    body = g.slab("Grip", outline, 0.039, wood, bevel=0.004)
+    body = g.contoured("Grip", outline, 0.039, wood, roll=0.014)
     parts = [
         g.slab(
             "CutGripCap",
@@ -108,7 +108,7 @@ def grip(m, receiver, metal, black, wood, checker):
 def forepiece(m, receiver, metal, wood, checker):
     """Short splinter forepiece fits the twin barrels with separate inset grip panels."""
     outline = [(0.062, 0.014), (0.18, 0.014), (0.198, 0.0), (0.187, -0.024), (0.09, -0.032), (0.06, -0.018)]
-    piece = g.slab("Foregrip", outline, 0.055, wood, bevel=0.004)
+    piece = g.contoured("Foregrip", outline, 0.055, wood, roll=0.009)
     cuts = [
         g.lathe(f"ForepieceSeat{side}", [(0.0145, 0.058), (0.0145, 0.2)], (side * BARREL_X, 0, BORE_Z), metal, 24)
         for side in (-1, 1)
@@ -179,3 +179,4 @@ def build(m) -> None:
     controls(m, receiver, metal, black)
     sights(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.055, 0.021, 0.01, 0.023, 0.0007), 0.0007, 0.0263, metal)
+    g.stamp(m, "grubber_sawnoff", "Receiver", (-0.026, -0.024, 0.008), 0.044)

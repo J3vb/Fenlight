@@ -80,7 +80,7 @@ def receiver_parts(metal, black, olive):
         (0.002, -0.055),
     ]
     parts += [
-        g.slab("Grip", grip, 0.036, olive, bevel=0.005),
+        g.contoured("Grip", grip, 0.036, olive, roll=0.011),
         g.slab("TriggerGuard", guard, 0.014, black, bevel=0.0015),
     ]
     cut_port(parts[0], metal)
@@ -199,12 +199,12 @@ def handle_and_bipod(m, receiver, metal, black):
 
 def stock_parts(m, receiver, metal, black, olive):
     """Skeleton stock with a top strut, shoulder rest and a folding monopod."""
-    stock = g.slab(
+    stock = g.contoured(
         "Stock",
         [(-0.2, 0.05), (-0.43, 0.04), (-0.44, -0.1), (-0.415, -0.105), (-0.3, -0.06), (-0.2, -0.045)],
         0.048,
         olive,
-        bevel=0.004,
+        roll=0.016,
     )
     g.cut(stock, [g.slab("StockWindow", g.rounded(-0.38, -0.04, -0.24, 0.01, 0.01), 0.06, black)])
     pieces = [
@@ -261,3 +261,4 @@ def build(m) -> None:
     stock_parts(m, receiver, metal, black, olive)
     moving_parts(m, receiver, metal, black, olive)
     g.add_inlays(m, receiver, g.rounded(-0.09, 0.065, 0.09, 0.067, 0.0008), 0.0006, 0.029, metal)
+    g.stamp(m, "halberd_lmg", "Receiver", (-0.032, -0.085, 0.019), 0.085)

@@ -108,7 +108,7 @@ def lower_parts(black, tan):
         (-0.001, -0.04),
     ]
     return [
-        g.slab("Grip", grip, 0.032, tan, bevel=0.005),
+        g.contoured("Grip", grip, 0.032, tan, roll=0.011),
         g.slab("GripCap", [(-0.124, -0.158), (-0.157, -0.158), (-0.158, -0.167), (-0.123, -0.167)], 0.034, black),
         g.slab("TriggerGuard", guard, 0.012, black, bevel=0.0015),
     ]
@@ -173,12 +173,12 @@ def front_parts(m, receiver, metal, black, tan):
     ]
     m.join_into(sights, pieces)
     m.attach(sights, (0, -0.093, 0.057), receiver)
-    foregrip = g.slab(
+    foregrip = g.contoured(
         "Foregrip",
         [(0.15, -0.006), (0.215, -0.006), (0.21, -0.022), (0.175, -0.07), (0.158, -0.074), (0.15, -0.064)],
         0.03,
         tan,
-        bevel=0.004,
+        roll=0.009,
     )
     m.attach(foregrip, (0, 0.18, -0.006), receiver)
     m.marker("Muzzle", (0, 0.35, BORE_Z), parent=receiver)
@@ -193,11 +193,15 @@ def stock_parts(m, receiver, metal, black):
         black,
         bevel=0.004,
     )
-    pieces = [g.slab("ButtPad", [(-0.333, 0.038), (-0.343, 0.038), (-0.346, -0.084), (-0.336, -0.088)], 0.046, black)]
+    pieces = [
+        g.contoured(
+            "ButtPad", [(-0.333, 0.038), (-0.343, 0.038), (-0.346, -0.084), (-0.336, -0.088)], 0.046, black, roll=0.006
+        )
+    ]
     for x in (-1, 1):
         pieces.append(g.lathe(f"Rod{x}", [(0.0055, -0.31), (0.0055, -0.125)], (x * 0.016, 0, 0.022), metal, 10))
     pieces.append(g.lathe("RodLow", [(0.006, -0.31), (0.006, -0.125)], (0, 0, -0.022), metal, 10))
-    pieces.append(g.slab("CheekRest", g.rounded(-0.31, 0.03, -0.24, 0.042, 0.005), 0.04, black, bevel=0.002))
+    pieces.append(g.contoured("CheekRest", g.rounded(-0.31, 0.03, -0.24, 0.042, 0.005), 0.04, black, roll=0.008))
     m.join_into(butt, pieces)
     m.attach(butt, (0, -0.13, 0.0), receiver)
 
@@ -246,3 +250,4 @@ def build(m) -> None:
     stock_parts(m, receiver, metal, black)
     moving_parts(m, receiver, metal, black, tan)
     g.add_inlays(m, receiver, g.rounded(-0.105, 0.039, 0.105, 0.041, 0.0008), 0.0006, 0.023, metal)
+    g.stamp(m, "mako_pdw", "Receiver", (-0.023, -0.085, 0.019), 0.085)

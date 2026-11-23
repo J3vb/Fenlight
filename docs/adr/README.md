@@ -48,3 +48,4 @@ change it), **replaced** (see the newer record).
 | [0016](0016-baked-town-npcs.md) | Town NPC bodies may use baked texture maps | accepted |
 | [0017](0017-tripo-models.md) | Models made in Tripo may go in assets/ | accepted |
 | [0019](0019-supplied-2d-menu-art.md) | Supplied painted art may go in assets/ui/ as menu backdrops | accepted |
+| [0020](0020-shared-weapon-surface-detail.md) | One shared surface tile for weapon finishes | proposed |

@@ -90,8 +90,10 @@ def stock(metal, black, elastic, markings):
         (-0.12, 0.022),
     ]
     parts = [
-        g.slab("Stock", outline, 0.042, black, bevel=0.006),
-        g.slab("ButtPad", [(-0.37, 0.02), (-0.388, 0.022), (-0.39, -0.11), (-0.37, -0.112)], 0.046, black, bevel=0.004),
+        g.contoured("Stock", outline, 0.042, black, roll=0.016),
+        g.contoured(
+            "ButtPad", [(-0.37, 0.02), (-0.388, 0.022), (-0.39, -0.11), (-0.37, -0.112)], 0.046, black, roll=0.006
+        ),
         g.lathe("Swivel", [(0.006, -0.105), (0.006, -0.085)], (0, -0.31, 0), metal, 10, axis="z"),
         g.slab("ShellBand", g.rounded(-0.33, -0.06, -0.215, 0.0, 0.006), 0.004, elastic, x=0.023, bevel=0.001),
     ]
@@ -181,3 +183,4 @@ def build(m) -> None:
     load_shell(m, markings, body)
     m.marker("Muzzle", (0, 0.625, BORE_Z), parent=body)
     g.add_inlays(m, body, g.rounded(-0.028, 0.040, 0.096, 0.042, 0.0008), 0.001, 0.025, metal)
+    g.stamp(m, "shotgun_brenner", "Receiver", (-0.025, -0.04, 0.016), 0.085)

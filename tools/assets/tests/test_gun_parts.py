@@ -58,6 +58,16 @@ class ShapeToolTest(unittest.TestCase):
         bm.reset_scene()
         self.mat = bm.material("M", (0.5, 0.5, 0.5, 1.0))
 
+    def test_contoured_shoulders_roll_inside_the_authored_contact_envelope(self) -> None:
+        part = g.contoured("Pad", [(-0.06, -0.02), (0.06, -0.02), (0.06, 0.02), (-0.06, 0.02)], 0.04, self.mat, 0.012)
+        verts = [v.co for v in part.data.vertices]
+        self.assertAlmostEqual(max(v.x for v in verts), 0.02, places=6)
+        self.assertAlmostEqual(max(v.z for v in verts), 0.02, places=6)
+        self.assertGreater(len({round(v.x, 5) for v in verts}), 4)
+        self.assertLess(max(v.z for v in verts if v.x > 0.0199), 0.012)
+        self.assertGreater(volumes(part)[0], 0)
+        self.assertEqual(zero_area_faces(part), 0)
+
     def test_slab_is_a_closed_outward_solid_of_outline_times_width(self) -> None:
         notch = [(0, 0), (0.1, 0), (0.1, 0.05), (0.06, 0.05), (0.06, 0.02), (0.04, 0.02), (0.04, 0.05), (0, 0.05)]
         part = g.slab("Notch", notch, 0.02, self.mat, x=0.01)
@@ -230,6 +240,28 @@ class ShapeToolTest(unittest.TestCase):
 
 
 class DetailedGunTest(unittest.TestCase):
+    def test_every_model_carries_its_own_inspection_stamp(self) -> None:
+        guns = {name for name, (path, _build) in bm.MODELS.items() if path.startswith("weapons/")}
+        self.assertEqual(guns, set(gun_markings.gun_plates.STAMPS))
+        for name in sorted(guns):
+            bm.reset_scene()
+            bm.MODELS[name][1]()
+            u0, v0, u1, v1 = gun_markings.uv_rect(name)
+            expected = {(u0, v0), (u0, v1), (u1, v1), (u1, v0)}
+            stamped = []
+            for obj in bpy.context.scene.objects:
+                if obj.type != "MESH" or g.MARKINGS_UV not in obj.data.uv_layers:
+                    continue
+                uv = obj.data.uv_layers[g.MARKINGS_UV].data
+                for face in obj.data.polygons:
+                    corners = [uv[i].uv for i in face.loop_indices]
+                    if all(any((corner - Vector(point)).length < 1e-5 for corner in corners) for point in expected):
+                        self.assertIn(obj.data.materials[face.material_index].name, ("Markings", "FactoryPrint"), name)
+                        stamped.append(obj.name)
+            self.assertEqual(len(stamped), 1, name)
+            if name in ("warden_p9", "wren_mp"):
+                self.assertEqual(stamped, ["Slide"], name)
+
     def test_every_gun_is_detailed_and_inside_the_weapon_budget(self) -> None:
         budget = check_models.BUDGETS["weapons"][0]
         for name in GUNS:

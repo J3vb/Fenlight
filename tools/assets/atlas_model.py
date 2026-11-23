@@ -77,7 +77,7 @@ def grip_parts(black, olive):
         (0.016, -0.05),
     ]
     return [
-        g.slab("Grip", grip, 0.036, olive, bevel=0.005),
+        g.contoured("Grip", grip, 0.036, olive, roll=0.011),
         g.slab("TriggerGuard", guard, 0.014, black, bevel=0.0015),
     ]
 
@@ -151,7 +151,7 @@ def handguard(olive, black):
 
 def stock_parts(m, receiver, metal, black, olive):
     """Fixed stock with a straight comb, sling loop and thick recoil pad."""
-    stock = g.slab(
+    stock = g.contoured(
         "Stock",
         [
             (-0.16, 0.046),
@@ -164,11 +164,11 @@ def stock_parts(m, receiver, metal, black, olive):
         ],
         0.046,
         olive,
-        bevel=0.004,
+        roll=0.016,
     )
     pieces = [
-        g.slab(
-            "RecoilPad", [(-0.4, 0.042), (-0.425, 0.042), (-0.428, -0.098), (-0.405, -0.104)], 0.052, black, bevel=0.005
+        g.contoured(
+            "RecoilPad", [(-0.4, 0.042), (-0.425, 0.042), (-0.428, -0.098), (-0.405, -0.104)], 0.052, black, roll=0.007
         ),
         g.slab("Comb", g.rounded(-0.37, 0.04, -0.2, 0.05, 0.004), 0.04, black, bevel=0.002),
         g.lathe("SlingLoop", [(0.005, -0.03), (0.005, 0.03)], (0, -0.36, -0.07), metal, 10, axis="x"),
@@ -230,3 +230,4 @@ def build(m) -> None:
     stock_parts(m, receiver, metal, black, olive)
     moving_parts(m, receiver, metal, black, olive)
     g.add_inlays(m, receiver, g.rounded(-0.13, 0.052, 0.13, 0.054, 0.0008), 0.001, 0.029, metal)
+    g.stamp(m, "atlas_auto", "Receiver", (-0.027, -0.085, -0.014), 0.085)

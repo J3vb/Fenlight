@@ -21,6 +21,7 @@ from pathlib import Path
 import bpy
 import numpy as np
 from mathutils import Vector
+from weapon_preview_materials import gun_preview
 
 REPO = Path(__file__).resolve().parents[1]
 GUNS = (
@@ -80,6 +81,8 @@ def import_gun(model_id, content_id, view):
     """Render the checked-in export, including the same part transforms Godot imports."""
     bpy.ops.import_scene.gltf(filepath=str(REPO / "assets/models/weapons" / f"{model_id}.glb"))
     imported = list(bpy.context.selected_objects)
+    for material in {mat for obj in imported if obj.type == "MESH" for mat in obj.data.materials if mat}:
+        gun_preview(material, model_id)
     triangles = sum(len(poly.vertices) - 2 for obj in imported if obj.type == "MESH" for poly in obj.data.polygons)
     if view == "first_person":
         content = (REPO / "content/weapons" / f"{content_id}.tres").read_text()

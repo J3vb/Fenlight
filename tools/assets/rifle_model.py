@@ -227,12 +227,12 @@ def stock(m, metal, black, tan):
         g.lathe("CastleNut", [(0.02, -0.175), (0.02, -0.188)], (0, 0, 0.018), black, 12),
         frame,
         g.slab("StockLever", [(-0.288, -0.014), (-0.262, -0.009), (-0.262, -0.003), (-0.288, -0.008)], 0.046, black),
-        g.slab(
+        g.contoured(
             "ButtPad",
             [(-0.4, 0.05), (-0.414, 0.05), (-0.418, -0.075), (-0.403, -0.088), (-0.388, -0.084)],
             0.046,
             black,
-            bevel=0.004,
+            roll=0.006,
         ),
         g.lathe("SlingCup", [(0.007, 0.0), (0.007, 0.004)], (0.022, -0.22, 0.018), metal, 12, axis="x"),
     ]
@@ -287,3 +287,4 @@ def build(m) -> None:
     m.attach(bolt, (0.0275, 0.015, 0.019), receiver)
     m.marker("Muzzle", (0, 0.627, AXIS_Z), parent=receiver)
     g.add_inlays(m, receiver, g.rounded(-0.145, 0.038, 0.14, 0.040, 0.001), 0.001, 0.0252, metal)
+    g.stamp(m, "rifle_ar", "Receiver", (-0.025, -0.1, 0.026), 0.085)

@@ -77,7 +77,7 @@ def action(metal, black, grey):
 
 def furniture(m, receiver, metal, black, grey):
     """An open shoulder frame and finger-shaped grip keep the silhouette rifle-like."""
-    grip = g.slab(
+    grip = g.contoured(
         "Grip",
         [
             (-0.09, -0.026),
@@ -92,7 +92,7 @@ def furniture(m, receiver, metal, black, grey):
         ],
         0.034,
         grey,
-        bevel=0.004,
+        roll=0.011,
     )
     m.attach(grip, (0, -0.11, -0.03), receiver)
     shoulder_stock(m, receiver, metal, black, grey)
@@ -136,8 +136,8 @@ def shoulder_stock(m, receiver, metal, black, grey):
         metal,
         bevel=0.003,
     )
-    cheek = g.slab("Cheek", g.rounded(-0.35, 0.033, -0.235, 0.053, 0.005), 0.045, grey, bevel=0.002)
-    pad = g.slab("ButtPad", g.rounded(-0.378, -0.086, -0.364, 0.049, 0.005), 0.05, black, bevel=0.002)
+    cheek = g.contoured("Cheek", g.rounded(-0.35, 0.033, -0.235, 0.053, 0.005), 0.045, grey, roll=0.008)
+    pad = g.contoured("ButtPad", g.rounded(-0.378, -0.086, -0.364, 0.049, 0.005), 0.05, black, roll=0.006)
     m.join_into(stock, [cheek, pad])
     m.attach(stock, (0, -0.18, 0.022), receiver)
 
@@ -296,3 +296,4 @@ def build(m) -> None:
     magazine(m, receiver, metal, black, grey)
     controls(m, receiver, metal, black)
     cabling(m, receiver, black, live)
+    g.stamp(m, "synapse", "Receiver", (-0.027, -0.05, 0.019), 0.085)

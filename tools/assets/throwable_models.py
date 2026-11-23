@@ -15,7 +15,14 @@ BODY = [
     (0.020, -0.036),
     (0.028, -0.028),
     (0.032, -0.015),
-    (0.033, 0.0),
+    (0.0328, -0.006),
+    (0.0336, -0.0045),
+    (0.0336, -0.0025),
+    (0.0325, -0.0015),
+    (0.0325, 0.0015),
+    (0.0336, 0.0025),
+    (0.0336, 0.0045),
+    (0.0328, 0.006),
     (0.031, 0.014),
     (0.025, 0.024),
     (0.016, 0.031),
@@ -29,10 +36,14 @@ def build_frag() -> None:
     from build_models import box, material, srgb
     from gun_parts import lathe
 
-    olive = material("Olive", srgb("#4A5446"), roughness=0.6)
-    steel = material("Steel", srgb("#8A918C"), metallic=0.7, roughness=0.45)
-    dark = material("Dark", srgb("#1C2122"), roughness=0.7)
-    lathe("Body", BODY, (0, 0, 0), olive, segments=20, axis="z")
+    olive = material("OliveCoat", srgb("#4A5446"), roughness=0.6)
+    steel = material("GunMetal", srgb("#8A918C"), metallic=0.7, roughness=0.45)
+    dark = material("MatteBlack", srgb("#1C2122"), roughness=0.7)
+    body = lathe("Body", BODY, (0, 0, 0), olive, segments=22, axis="z")
+    body.data.materials.append(dark)
+    for face in body.data.polygons:
+        if abs(face.center.z) < 0.001:
+            face.material_index = 1
     lathe("Fuze", FUZE, (0, 0, 0), steel, segments=16, axis="z")
     box("LeverTop", (0.026, 0.012, 0.003), (0.010, 0.0, 0.0505), dark, bevel=0.0008)
     box("LeverSide", (0.003, 0.012, 0.058), (0.0245, 0.0, 0.020), dark, bevel=0.0008)

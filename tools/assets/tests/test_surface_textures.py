@@ -9,10 +9,25 @@ import numpy as np
 import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import gun_surface
 import surface_textures as st
 
 BUDGET_BYTES = 25 * 1024 * 1024
 SIZE = 256
+
+
+def test_committed_weapon_detail_tile_matches_all_three_generated_channels():
+    encoded = gun_surface.OUT.read_bytes()
+    length = int.from_bytes(encoded[33:37], "big")
+    tile = gun_surface.surface_tile()
+    height, width, channels = tile.shape
+    rows = np.frombuffer(zlib.decompress(encoded[41 : 41 + length]), np.uint8).reshape(height, 1 + width * channels)
+    assert (rows[:, 0] == 1).all()
+    decoded = np.cumsum(rows[:, 1:].reshape(tile.shape), axis=1) % 256
+    np.testing.assert_array_equal(decoded, tile)
+    config = gun_surface.OUT.with_suffix(".png.import").read_text()
+    assert "compress/mode=2" in config
+    assert "mipmaps/generate=true" in config
 
 
 @pytest.mark.parametrize("name", sorted(st.SETS))

@@ -7,12 +7,16 @@ on:
   pull_request:
     paths:
       - "assets/models/**"
+      - "assets/textures/weapons/**"
+      - "assets/textures/gun_markings.png"
       - "docs/design/turnarounds/**"
       - "docs/design/images/**"
       - "tools/turnarounds.py"
       - "tools/render_turnarounds.py"
       - "tools/test_turnarounds.py"
       - "tools/render_weapon_comparison.py"
+      - "tools/weapon_preview_materials.py"
+      - "tools/assets/gun_bake.py"
       - "tools/assets/requirements.txt"
       - ".github/workflows/turnarounds.yml"
   workflow_dispatch:

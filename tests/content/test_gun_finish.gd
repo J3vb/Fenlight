@@ -39,7 +39,10 @@ func _materials(id: String) -> Dictionary[String, Material]:
 
 
 func test_every_gun_surface_uses_the_finish_shader() -> void:
-	for id: String in GUNS:
+	for file: String in ResourceLoader.list_directory("res://assets/models/weapons"):
+		if not file.ends_with(".glb"):
+			continue
+		var id: String = file.get_basename()
 		var materials: Dictionary[String, Material] = _materials(id)
 		for mat_name: String in materials:
 			var material: Material = materials[mat_name]
@@ -49,6 +52,9 @@ func test_every_gun_surface_uses_the_finish_shader() -> void:
 			assert_true(material is ShaderMaterial, "%s %s uses the finish shader" % [id, mat_name])
 			if material is ShaderMaterial:
 				assert_eq((material as ShaderMaterial).shader.resource_path, SHADER, "%s %s shader" % [id, mat_name])
+				if mat_name != "Baked":
+					var tile: Texture2D = _param(material, "surface_detail") as Texture2D
+					assert_not_null(tile, "%s %s has a surface detail tile" % [id, mat_name])
 
 
 func test_finish_follows_the_material_name() -> void:

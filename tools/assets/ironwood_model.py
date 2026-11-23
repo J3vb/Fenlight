@@ -77,12 +77,12 @@ def furniture(m, receiver, black, tan):
     m.join_into(
         stock,
         [
-            g.slab("CheekRest", g.rounded(-0.408, 0.029, -0.284, 0.048, 0.006), 0.052, black, bevel=0.0025),
-            g.slab("ButtPad", g.rounded(-0.443, -0.114, -0.425, 0.038, 0.007), 0.058, black, bevel=0.003),
+            g.contoured("CheekRest", g.rounded(-0.408, 0.029, -0.284, 0.048, 0.006), 0.052, black, roll=0.008),
+            g.contoured("ButtPad", g.rounded(-0.443, -0.114, -0.425, 0.038, 0.007), 0.058, black, roll=0.006),
         ],
     )
     m.attach(stock, (0, -0.18, 0), receiver)
-    grip = g.slab(
+    grip = g.contoured(
         "Grip",
         [
             (-0.11, -0.04),
@@ -95,7 +95,7 @@ def furniture(m, receiver, black, tan):
         ],
         0.038,
         tan,
-        bevel=0.005,
+        roll=0.011,
     )
     panels = [
         g.slab(f"GripPanel{side}", g.rounded(-0.18, -0.154, -0.146, -0.074, 0.007), 0.002, black, x=side * 0.0195)
@@ -228,3 +228,4 @@ def build(m) -> None:
     optic(m, receiver, metal, black, glass)
     moving_parts(m, receiver, metal, black)
     g.add_inlays(m, receiver, g.rounded(-0.15, 0.039, 0.12, 0.041, 0.0008), 0.001, 0.0323, metal)
+    g.stamp(m, "ironwood_50", "Receiver", (-0.032, -0.085, 0.019), 0.085)

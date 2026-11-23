@@ -40,12 +40,12 @@ def receiver_parts(metal, black, grey):
 
 def grip_parts(m, receiver, metal, black, grey):
     """Swept grip with fitted ribs and an open trigger guard."""
-    grip = g.slab(
+    grip = g.contoured(
         "Grip",
         [(-0.13, -0.045), (-0.085, -0.045), (-0.112, -0.17), (-0.126, -0.193), (-0.168, -0.183)],
         0.038,
         grey,
-        bevel=0.005,
+        roll=0.011,
     )
     pieces = [
         grip,
@@ -103,9 +103,9 @@ def stock_parts(m, receiver, metal, black, grey):
             metal,
             bevel=0.002,
         ),
-        g.slab("CheekRest", g.rounded(-0.329, 0.052, -0.238, 0.073, 0.005), 0.046, grey, bevel=0.002),
-        g.slab(
-            "ButtPad", [(-0.355, 0.064), (-0.367, 0.057), (-0.367, -0.10), (-0.355, -0.104)], 0.06, black, bevel=0.003
+        g.contoured("CheekRest", g.rounded(-0.329, 0.052, -0.238, 0.073, 0.005), 0.046, grey, roll=0.008),
+        g.contoured(
+            "ButtPad", [(-0.355, 0.064), (-0.367, 0.057), (-0.367, -0.10), (-0.355, -0.104)], 0.06, black, roll=0.006
         ),
     ]
     m.join_into(stock, pieces)
@@ -205,3 +205,4 @@ def build(m) -> None:
     stock_parts(m, receiver, metal, black, grey)
     containment_cage(m, receiver, metal, black, grey, green)
     controls(m, receiver, metal, black, grey, green)
+    g.stamp(m, "siphon", "Receiver", (-0.039, -0.085, 0.019), 0.085)

@@ -29,7 +29,7 @@ def receiver_parts(metal, black, grey):
     for y in (-0.12, 0.13):
         for x in (-1, 1):
             parts.append(
-                g.lathe("HousingScrew", [(0.004, -0.002), (0.004, 0.002)], (x * 0.033, y, 0.036), metal, 10, axis="x")
+                g.lathe("HousingScrew", [(0.004, -0.002), (0.004, 0.002)], (x * 0.033, y, 0.036), metal, 8, axis="x")
             )
     for y in (-0.075, -0.045, -0.015):
         parts.append(
@@ -42,6 +42,13 @@ def receiver_parts(metal, black, grey):
                 bevel=0.001,
             )
         )
+    # A folded instrument surround on the opposite flank breaks up the broad casing.
+    bezel = [(0.012, 0.003), (0.124, 0.003), (0.15, 0.021), (0.15, 0.052), (0.139, 0.059), (0.012, 0.059)]
+    parts.append(g.slab("InstrumentSurround", bezel, 0.0032, black, x=-0.032))
+    for index in range(4):
+        y = 0.032 + index * 0.024
+        stripe = [(y, 0.018), (y + 0.007, 0.018), (y + 0.019, 0.044), (y + 0.012, 0.044)]
+        parts.append(g.slab("EnamelIndex", stripe, 0.0009, metal, x=-0.0338))
     return parts + lower_parts(metal, black, grey)
 
 
@@ -49,7 +56,7 @@ def lower_parts(metal, black, grey):
     """Insulated pistol grip and oversize glove-friendly trigger guard."""
     parts = [
         g.slab("Rail", g.teeth(-0.12, 0.16, 0.083, 0.093, 0.025), 0.026, black, bevel=0.0006),
-        g.slab(
+        g.contoured(
             "Grip",
             [
                 (-0.12, -0.018),
@@ -62,7 +69,7 @@ def lower_parts(metal, black, grey):
             ],
             0.035,
             black,
-            bevel=0.004,
+            roll=0.011,
         ),
         g.slab(
             "Guard",
@@ -312,3 +319,4 @@ def build(m) -> None:
         strip = g.slab("CoolantIndicator", g.rounded(-0.105, 0.069, 0.1, 0.072, 0.001), 0.001, live, x=side * 0.0325)
         strips.append(glow_zone(strip))
     m.join_into(receiver, strips)
+    g.stamp(m, "cryo_lance", "Receiver", (-0.032, -0.085, 0.019), 0.085)
