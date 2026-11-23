@@ -40,6 +40,8 @@ func _doors() -> Array[Door]:
 func test_buying_a_door_opens_its_area() -> void:
 	player.wallet.set_points(5000)
 	var door: Door = _door("GuardPostDoor")
+	assert_eq(door.get_prompt(player), "Open Guard Post [F]  750")
+	assert_eq(_door("MessHallDebris").get_prompt(player), "Open Mess Hall [F]  1000")
 	door.interact(player)
 	assert_eq(player.wallet.points, 4250, "door cost 750")
 	assert_true(door.is_open)
@@ -147,6 +149,9 @@ func test_brenner_wall_buy_sells_the_shotgun() -> void:
 	await wait_physics_frames(3)
 	assert_eq(player.focus, wall_buy as Interactable, "board under the crosshair")
 	player.wallet.set_points(1000)
+	assert_eq(wall_buy.get_prompt(player), "Swap AR-17 for BR-12 [F]  750")
+	player.weapons.equip(0)
+	assert_eq(wall_buy.get_prompt(player), "Swap M-9 Service Pistol for BR-12 [F]  750")
 	wall_buy.interact(player)
 	assert_eq(player.weapons.current.data.id, &"brenner_trench", "shotgun in hand")
 	assert_eq(player.weapons.weapons.size(), 2, "two slots: it replaced the gun in hand")
@@ -209,3 +214,23 @@ func test_vent_grates_open_only_with_their_areas() -> void:
 	_door("MessHallDebris").interact(player)
 	assert_true(mess_grate.is_open, "the Mess Hall grate opens with the Mess Hall")
 	assert_false(containment_grate.is_open, "the Containment grate waits for its own door")
+
+
+func test_squad_spawns_clear_and_the_first_player_faces_into_the_dock() -> void:
+	var spawn: Transform3D = level.get_player_spawn()
+	var space: PhysicsDirectSpaceState3D = level.get_world_3d().direct_space_state
+	var start: Vector3 = spawn.origin + Vector3.UP * 1.5
+	var sight: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+		start, start - spawn.basis.z * 5.0, Layers.WORLD
+	)
+	assert_true(space.intersect_ray(sight).is_empty(), "the view opens into the room")
+	var capsule: CapsuleShape3D = CapsuleShape3D.new()
+	capsule.radius = 0.4
+	capsule.height = 1.8
+	var body: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
+	body.shape = capsule
+	body.collision_mask = Layers.WORLD
+	for index: int in 8:
+		var spot: Vector3 = spawn.origin + spawn.basis.x * PlayerSpawner.SPAWN_SPACING * index
+		body.transform.origin = spot + Vector3.UP * 0.95
+		assert_true(space.intersect_shape(body).is_empty(), "spawn %d clears the scenery" % index)

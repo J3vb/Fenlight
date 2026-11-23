@@ -215,7 +215,7 @@ func _physics_process(delta: float) -> void:
 	var revived: Player = _active
 	_begin(null)
 	revived.state_sync.revive_player()
-	_player.wallet.add(REWARD)
+	_player.wallet.earn(REWARD)
 
 
 @rpc("any_peer", "call_remote", "reliable")

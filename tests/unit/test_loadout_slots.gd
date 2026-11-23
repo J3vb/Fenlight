@@ -30,6 +30,7 @@ func test_nine_slots_show_armour_left_and_kit_right_with_slot_names() -> void:
 	assert_eq(_slot_button(&"headgear").get_parent().name, &"ArmourSlots")
 	assert_eq(_slot_button(&"implant").get_parent().name, &"KitSlots")
 	assert_eq(_slot_button(&"backpack").text, "Backpack\nEmpty")
+	assert_string_contains(_slot_button(&"primary").text, "stored")
 
 
 func test_gamepad_focus_moves_between_slot_columns_and_into_the_stash() -> void:

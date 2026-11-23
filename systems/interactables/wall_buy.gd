@@ -28,6 +28,8 @@ func get_prompt(player: Player) -> String:
 		return "" if owned or taken_by.has(player.net_id) else "Take %s [F]" % weapon.display_name
 	if owned:
 		return "Buy ammo for %s [F]  %d" % [owned.data.display_name, ammo_cost(owned.data.id)]
+	if player.weapons.weapons.size() >= player.weapons.max_slots and player.weapons.current:
+		return "Swap %s for %s [F]  %d" % [player.weapons.current.data.display_name, weapon.display_name, weapon.cost]
 	return "Buy %s [F]  %d" % [weapon.display_name, weapon.cost]
 
 

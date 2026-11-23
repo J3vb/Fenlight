@@ -90,6 +90,6 @@ static func _pistol_slot(player: Player) -> int:
 
 ## Server: an item gun's on-hit effects for one applied hit.
 static func apply_hit(player: Player, item: ItemInstance, info: DamageInfo) -> void:
-	player.wallet.add(roundi(item.stats.value(&"points_per_hit", 0.0, player.stats)))
+	player.wallet.earn(roundi(item.stats.value(&"points_per_hit", 0.0, player.stats)))
 	player.health.heal(item.stats.value(&"leech", 0.0, player.stats))
 	LegendaryTraits.bloodline(player, item, info)

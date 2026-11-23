@@ -75,6 +75,16 @@ func get_prompt(viewer: Player) -> String:
 func interact(viewer: Player, _facts: Dictionary = {}) -> void:
 	if viewer != player or is_queued_for_deletion() or not _can_reach(viewer):
 		return
+	if pack.is_full():
+		return
+	var profile: CharacterProfile = viewer.session.profile if viewer.session else null
+	if profile and pack.items.size() >= profile.free_stash_slots():
+		if not has_node(^"StashExchange"):
+			var exchange: StashExchange = StashExchange.new()
+			exchange.name = "StashExchange"
+			add_child(exchange)
+			exchange.offer(self, profile)
+		return
 	if pack.add(item):
 		viewer.focus = null
 		queue_free()
@@ -91,6 +101,7 @@ func _can_reach(viewer: Player) -> bool:
 		and not viewer.is_downed
 		and viewer.global_position.distance_to(global_position) <= viewer.interact_range
 		and (viewer.session == null or not viewer.session.is_over)
+		and (viewer.session == null or viewer.session.match_end == null or not viewer.session.match_end.xp_banked)
 	)
 
 

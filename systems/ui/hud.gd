@@ -115,7 +115,11 @@ func _update_exfil() -> void:
 	exfil_box.visible = is_instance_valid(_exfil) and (_exfil.is_open or _exfil.is_holding)
 	if not exfil_box.visible:
 		return
-	exfil_title.text = "Exfil open · Containment Wing"
+	exfil_title.text = "Hold the hatch" if _exfil.is_holding else "Exfil open · Containment Wing"
+	exfil_bar.visible = _exfil.is_holding
+	if not _exfil.is_holding:
+		exfil_time.text = "Hold %ds for +50%% run XP\nor stay for the next wave" % int(ExfilHatch.HOLD_TIME)
+		return
 	exfil_bar.value = 1.0 - _exfil.hold_left / ExfilHatch.HOLD_TIME
 	var seconds: int = maxi(ceili(_exfil.hold_left), 0)
 	exfil_time.text = "Hold %d:%02d" % [seconds / 60, seconds % 60]

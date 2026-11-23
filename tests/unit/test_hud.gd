@@ -61,6 +61,9 @@ func test_exfil_shows_when_open_counts_hold_and_hides_when_closed() -> void:
 	Events.exfil_opened.emit()
 	assert_true(hud.exfil_box.visible)
 	assert_eq(hud.exfil_title.text, "Exfil open · Containment Wing")
+	assert_string_contains(hud.exfil_time.text, "60s for +50% run XP")
+	assert_string_contains(hud.exfil_time.text, "stay for the next wave")
+	assert_false(hud.exfil_bar.visible)
 	hatch.is_holding = true
 	hatch.hold_left = 39.0
 	Events.exfil_called.emit(hatch)

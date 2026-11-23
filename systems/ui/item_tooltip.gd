@@ -199,7 +199,27 @@ func _add_trait() -> void:
 	affixes.add_child(label)
 
 
-func _rolled_affix(line: Array, implicit: bool, item: Dictionary) -> Dictionary:
+## Plain rolled bonuses for the compact picker used while a match is running.
+static func bonus_summary(item: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	var legendary: LegendaryData = ItemInstance.legendary_of(item)
+	if legendary:
+		parts.append(legendary.text.replace("{v}", _number(ItemRoller.trait_value(legendary, item.trait[1]))))
+	var lines: Array = item.get("aff", []).duplicate()
+	var implicit: Variant = item.get("imp")
+	if implicit is Array and not implicit.is_empty():
+		lines.append(implicit)
+	for line: Array in lines:
+		var rolled: Dictionary = _rolled_affix(line, line.size() == 2, item)
+		if rolled.is_empty():
+			parts.append("Inactive bonus")
+		else:
+			var affix: AffixData = rolled.data
+			parts.append(affix.text.replace("{v}", _number(rolled.value)))
+	return "\n".join(parts)
+
+
+static func _rolled_affix(line: Array, implicit: bool, item: Dictionary) -> Dictionary:
 	var required: int = 2 if implicit else 3
 	if line.size() != required or not Content.has(&"loot", StringName(line[0])):
 		return {}
@@ -280,5 +300,5 @@ func _base(item: Dictionary, type: StringName) -> Resource:
 	return Content.get_item(type, id) if Content.has(type, id) else null
 
 
-func _number(value: float) -> String:
+static func _number(value: float) -> String:
 	return ("%.2f" % value).trim_suffix("0").trim_suffix("0").trim_suffix(".")

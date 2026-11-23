@@ -24,6 +24,8 @@ func get_prompt(player: Player) -> String:
 		return ""
 	if _ready_ids.has(player.net_id):
 		return "Cancel ready [F]"
+	if player.session and player.session.profile:
+		return "Ready: %s · %d free stash slots [F]" % [label, player.session.profile.free_stash_slots()]
 	return "Ready: %s [F]" % label
 
 
