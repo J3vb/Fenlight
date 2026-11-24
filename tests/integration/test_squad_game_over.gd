@@ -69,8 +69,9 @@ func test_squad_wipe_freezes_both_peers_and_shows_identical_results() -> void:
 	server.director.round_number = 4
 	server.match_end.kills = 7
 	server.match_end.headshots = 3
-	server.players.find_player(1).wallet.set_points(1234)
-	server.players.find_player(client.multiplayer.get_unique_id()).wallet.set_points(555)
+	server.players.find_player(1).wallet.earn(1234)
+	server.players.find_player(client.multiplayer.get_unique_id()).wallet.earn(555)
+	assert_true(server.economy.try_spend(server.players.find_player(1), 750))
 	_down(server.players.find_player(1))
 	_down(server.players.find_player(client.multiplayer.get_unique_id()))
 	assert_true(server.is_over)

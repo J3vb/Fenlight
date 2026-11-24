@@ -72,6 +72,7 @@ func test_held_input_uses_frames_and_pause_cancels() -> void:
 	teammate.is_downed = true
 	hud._process(0.0)
 	Input.action_press(&"interact")
+	player.last_frame = player.local_input.sample(1)
 	hud._physics_process(0.3)
 	assert_almost_eq(player.revive.progress, 0.1, 0.001)
 	UI.push(&"pause")
@@ -93,3 +94,35 @@ func test_prompt_and_frames_skip_a_player_that_left_the_tree() -> void:
 	hud._process(0.016)
 	hud._physics_process(0.016)
 	assert_eq(hud.prompt_label.text, "", "a freed local player shows no prompt and raises no error")
+
+
+func test_dialog_cancels_a_held_revive_until_the_interact_key_is_released() -> void:
+	teammate.is_downed = true
+	hud._process(0.0)
+	Input.action_press(&"interact")
+	player.last_frame = player.local_input.sample(1)
+	hud._physics_process(0.3)
+	assert_gt(player.revive.progress, 0.0)
+	var dialog: ConfirmationDialog = ConfirmationDialog.new()
+	add_child(dialog)
+	player.local_input.block_for_dialog(dialog)
+	hud._physics_process(Revive.HOLD_TIME)
+	assert_eq(player.revive.progress, 0.0)
+	dialog.free()
+	player.last_frame = player.local_input.sample(2)
+	hud._physics_process(Revive.HOLD_TIME)
+	assert_eq(player.revive.progress, 0.0)
+	Input.action_release(&"interact")
+	player.local_input.sample(3)
+	Input.action_press(&"interact")
+	player.last_frame = player.local_input.sample(4)
+	hud._physics_process(0.3)
+	assert_gt(player.revive.progress, 0.0)
+	player.revive._elapsed = player.revive.hold_time() - 0.01
+	var balance: int = player.wallet.points
+	Input.action_release(&"interact")
+	hud._physics_process(0.02)
+	player.revive._physics_process(0.02)
+	assert_eq(player.revive.progress, 0.0, "the HUD sees release before the next player sample")
+	assert_true(teammate.is_downed)
+	assert_eq(player.wallet.points, balance)

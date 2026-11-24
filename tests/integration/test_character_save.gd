@@ -74,6 +74,19 @@ func test_kill_and_round_xp_survive_game_over_and_next_session() -> void:
 	assert_eq(session.progression.get_level(player), 2)
 
 
+func test_recap_excludes_starting_points_spending_and_refunds() -> void:
+	for index: int in 25:
+		session.economy._on_enemy_damaged(null, DamageInfo.create(1.0, player))
+	assert_true(session.economy.try_spend(player, 750))
+	assert_eq(player.wallet.points, 0)
+	player.wallet.add(100)  # A refund or grant is not an earning.
+	session.director.round_number = 1
+	player.take_damage(DamageInfo.create(10000, null))
+	await wait_until(func() -> bool: return UI.top() == &"results", 2.0, "results shown")
+	assert_eq(_results().points_label.text, "250")
+	assert_eq(_results().round_label.text, "1  New best")
+
+
 func test_exfil_banks_after_bonus_once() -> void:
 	session.progression.add_xp(player, 101)
 	session.match_end.finish_exfil()
@@ -249,3 +262,87 @@ func test_game_over_records_best_round_even_after_xp_was_banked_first() -> void:
 
 func _results() -> ResultsScreen:
 	return UI._stack.back()["layer"].get_child(0) as ResultsScreen
+
+
+func test_player_can_choose_the_reward_for_the_last_stash_space() -> void:
+	for slot: int in CharacterProfile.STASH_SIZE - 1:
+		session.profile.stash[slot] = {"uid": str(slot), "base": "vest_light", "rar": "common"}
+	var common: Dictionary = {"uid": "common", "base": "vest_light", "rar": "common"}
+	var rare: Dictionary = {"uid": "prized", "base": "vest_light", "rar": "rare"}
+	session.loot.send_drop(1, common, player.global_position)
+	(session.loot.get_child(0) as LootDrop).interact(player)
+	await wait_physics_frames(2)
+	session.loot.send_drop(1, rare, player.global_position)
+	var drop: LootDrop = session.loot.get_child(0) as LootDrop
+	drop.interact(player)
+	var dialog: StashExchange = drop.get_node("StashExchange") as StashExchange
+	assert_true(dialog.get_ok_button().disabled, "explicit choice is required")
+	Input.action_press(&"fire")
+	assert_eq(player.local_input.sample(1).buttons, 0)
+	Input.action_release(&"fire")
+	dialog.canceled.emit()
+	await wait_physics_frames(2)
+	assert_eq(session.loot.pack.items, [common], "cancelling keeps both choices available")
+	drop.interact(player)
+	dialog = drop.get_node("StashExchange") as StashExchange
+	dialog._choices.select(1)
+	dialog._choices.item_selected.emit(1)
+	assert_false(dialog.get_ok_button().disabled)
+	dialog.confirmed.emit()
+	assert_eq(session.loot.pack.items, [rare])
+	session.match_end.bank_run_xp()
+	assert_eq(CharacterProfile.load_or_create(ID).stash[59].uid, "prized")
+	assert_eq(session.loot.lost, 0)
+
+
+func test_full_stash_exchange_discards_only_the_selected_stored_item() -> void:
+	for slot: int in CharacterProfile.STASH_SIZE:
+		session.profile.stash[slot] = {"uid": str(slot), "base": "vest_light", "rar": "common"}
+	session.profile.stash[1].aff = [["grenade_damage", 1, 1.0]]
+	var prize: Dictionary = {"uid": "new", "base": "vest_light", "rar": "rare"}
+	session.loot.send_drop(1, prize, player.global_position)
+	var drop: LootDrop = session.loot.get_child(0) as LootDrop
+	drop.interact(player)
+	var dialog: StashExchange = drop.get_node("StashExchange") as StashExchange
+	dialog._choices.select(2)
+	dialog._choices.item_selected.emit(2)
+	assert_string_contains(dialog._detail.text, "Permanently discard")
+	assert_string_contains(dialog._detail.text, "20%")
+	dialog.confirmed.emit()
+	session.match_end.bank_run_xp()
+	var saved: CharacterProfile = CharacterProfile.load_or_create(ID)
+	assert_eq(saved.stash[0].uid, "0")
+	assert_eq(saved.stash[1].uid, "new")
+	assert_eq(saved.free_stash_slots(), 0)
+
+
+func test_run_exit_while_an_exchange_is_open_keeps_the_stored_item() -> void:
+	for slot: int in CharacterProfile.STASH_SIZE:
+		session.profile.stash[slot] = {"uid": str(slot), "base": "vest_light", "rar": "common"}
+	session.loot.send_drop(1, {"uid": "new", "base": "vest_light", "rar": "rare"}, player.global_position)
+	var drop: LootDrop = session.loot.get_child(0) as LootDrop
+	drop.interact(player)
+	var dialog: StashExchange = drop.get_node("StashExchange") as StashExchange
+	dialog._choices.select(1)
+	session.match_end.bank_run_xp()
+	dialog.confirmed.emit()
+	assert_eq(session.profile.stash[0].uid, "0")
+	assert_eq(CharacterProfile.load_or_create(ID).stash[0].uid, "0")
+	assert_true(session.loot.pack.items.is_empty())
+
+
+func test_full_pack_can_exchange_its_last_reserved_slot_without_discarding_stash() -> void:
+	for slot: int in CharacterProfile.STASH_SIZE - Pack.CAPACITY:
+		session.profile.stash[slot] = {"uid": str(slot), "base": "vest_light", "rar": "common"}
+	for slot: int in Pack.CAPACITY:
+		session.loot.pack.add({"uid": "pack%d" % slot, "base": "vest_light", "rar": "common"})
+	session.loot.send_drop(1, {"uid": "new", "base": "vest_light", "rar": "rare"}, player.global_position)
+	var drop: LootDrop = session.loot.get_child(0) as LootDrop
+	assert_string_contains(drop.get_prompt(player), "[F]")
+	drop.interact(player)
+	var dialog: StashExchange = drop.get_node("StashExchange") as StashExchange
+	assert_eq(dialog._choices.item_count, Pack.CAPACITY + 1)
+	dialog._choices.select(3)
+	dialog.confirmed.emit()
+	assert_eq(session.loot.pack.items[2].uid, "new")
+	assert_eq(session.profile.free_stash_slots(), Pack.CAPACITY)

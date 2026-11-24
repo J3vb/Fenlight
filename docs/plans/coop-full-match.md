@@ -230,7 +230,7 @@ is a test tool and never ships. No per-frame allocations.
   `CoopHud` revive prompt uses the name. PROTOCOL_VERSION +1.
 - Files: systems/net/handshake.gd, player_state_sync.gd, coop_hud.gd,
   systems/ui/squad_cards.gd (new), systems/ui/hud.gd, hud.tscn,
-  core/build.gd, tests/unit/test_squad_game_over.gd (as built; no test_squad_cards.gd),
+  core/build.gd, tests/integration/test_squad_game_over.gd (as built; no test_squad_cards.gd),
   tests/unit/test_player_state_sync.gd.
 - Tests: two-peer: a client sees the other player's name and health; a downed
   teammate's card shows the bleed timer counting down; the prompt says
@@ -367,7 +367,7 @@ is a test tool and never ships. No per-frame allocations.
 
 Evidence (close-out, 2026-11-17): soak = `coop-soak.yml` nightly, 4 bots
 reached round 20 with a clean server log; pause = `tests/unit/test_pause_screen.gd`;
-squad cards = `tests/unit/test_squad_game_over.gd`; hub and vote =
+squad cards = `tests/integration/test_squad_game_over.gd`; hub and vote =
 `tests/unit/test_deploy_vote.gd`, `tests/unit/test_places.gd`,
 `tests/integration/test_net_deploy.gd`; back to the hub =
 `tests/unit/test_places.gd` (return after game over, empty server, second

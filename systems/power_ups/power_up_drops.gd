@@ -166,7 +166,7 @@ func on_collected(pickup: PowerUp, collector: Player) -> void:
 	if pickup.data.duration > 0.0:
 		start_timer(pickup.data, collector.get_stat(&"power_up_duration", 0.0))
 	for player: Player in session.get_players() if pickup.data.team_points > 0 else []:
-		player.wallet.add(pickup.data.team_points)
+		player.wallet.earn(pickup.data.team_points)
 	if not multiplayer.get_peers().is_empty():
 		_receive_collected.rpc(pickup.name, pickup.data.id, collector.net_id)
 

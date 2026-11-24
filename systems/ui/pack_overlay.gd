@@ -6,6 +6,7 @@ const TOOLTIP: PackedScene = preload("res://systems/ui/item_tooltip.tscn")
 const CHARACTER: PackedScene = preload("res://systems/ui/pack_character.tscn")
 
 var service: LootService
+var stash_hint: Label
 var count: Label
 var panel: PanelContainer
 var slots: Array[Button] = []
@@ -65,9 +66,9 @@ func _build_panel() -> void:
 	title.text = "Pack · 6 slots"
 	title.add_theme_font_size_override("font_size", 36)
 	box.add_child(title)
-	var hint: Label = Label.new()
-	hint.text = "The match keeps running. You keep loot on death."
-	box.add_child(hint)
+	stash_hint = Label.new()
+	stash_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(stash_hint)
 	character = CHARACTER.instantiate() as PackCharacter
 	character.slot_selected.connect(_show_worn)
 	box.add_child(character)
@@ -145,6 +146,13 @@ func _layout() -> void:
 
 func _refresh() -> void:
 	var items: Array[Dictionary] = service.pack.items
+	if service.session and service.session.profile:
+		var free: int = service.session.profile.free_stash_slots()
+		stash_hint.text = (
+			"Stash · %d reserved for this Pack · %d still free" % [items.size(), maxi(free - items.size(), 0)]
+		)
+	else:
+		stash_hint.text = "The match keeps running."
 	if panel.visible:
 		character.refresh()
 	count.text = "Pack %d / 6 [%s]" % [items.size(), Settings.key_name(&"pack_toggle")]

@@ -48,7 +48,7 @@ text = "0"
 layout_mode = 2
 size_flags_vertical = 8
 theme_override_font_sizes/font_size = 36
-text = "rounds survived"
+text = "round reached"
 
 [node name="Exfil" type="Label" parent="."]
 unique_name_in_owner = true

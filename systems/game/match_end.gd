@@ -8,6 +8,7 @@ var kills: int = 0
 var headshots: int = 0
 var stats: Dictionary = {}
 var xp_banked: bool = false
+var _squad_result: Dictionary = {}
 
 
 func _init() -> void:
@@ -70,8 +71,13 @@ func check_squad() -> void:
 
 ## A player who joins an ended match gets its results.
 func share_results(peer_id: int) -> void:
-	if session.is_over and multiplayer.is_server():
-		_receive_match_end.rpc_id(peer_id, stats)
+	if not _squad_result.is_empty() and multiplayer.is_server():
+		_receive_match_end.rpc_id(peer_id, _results_for(peer_id))
+
+
+func _results_for(peer_id: int) -> Dictionary:
+	var player: Player = session.players.find_player(peer_id)
+	return _squad_result.merged({"points": player.wallet.earned if player else 0})
 
 
 func _on_enemy_killed(_enemy: Node3D, info: DamageInfo) -> void:
@@ -93,19 +99,15 @@ func _end_match(exfiled: bool) -> void:
 	if session.is_over or not multiplayer.is_server():
 		return
 	bank_run_xp()
-	var squad: Array[Player] = session.get_players()
-	var player: Player = squad[0] if not squad.is_empty() else null
-	var shared: Dictionary = {
+	_squad_result = {
 		"round": session.director.round_number,
 		"kills": kills,
 		"headshots": headshots,
-		"points": player.wallet.points if player else 0,
 		"exfil": exfiled,
 	}
-	if not multiplayer.get_peers().is_empty():
-		_receive_match_end.rpc(shared)
-	else:
-		_receive_match_end(shared)
+	for peer_id: int in multiplayer.get_peers():
+		share_results(peer_id)
+	_receive_match_end(_results_for(multiplayer.get_unique_id()))
 
 
 @rpc("authority", "call_local", "reliable")
@@ -134,7 +136,6 @@ func _add_own_results(shared: Dictionary) -> void:
 	var player: Player = session.profile_player
 	if not is_instance_valid(player):
 		return
-	stats["points"] = player.wallet.points
 	stats["xp"] = session.progression.get_xp(player)
 	stats["start_total_xp"] = session.start_total_xp
 	stats["total_xp"] = session.progression.get_total_xp(player)

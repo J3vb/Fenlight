@@ -33,7 +33,8 @@ func get_prompt(_player: Player) -> String:
 		return "Needs power" if needs_power and not level.power_on else ""
 	if needs_power and not level.power_on:
 		return "Needs power"
-	return "Open %s [F]  %d" % [label, cost]
+	var destination: String = String(opens_area).capitalize() if opens_area != &"" else label
+	return "Open %s [F]  %d" % [destination, cost]
 
 
 func interact(player: Player, _facts: Dictionary = {}) -> void:

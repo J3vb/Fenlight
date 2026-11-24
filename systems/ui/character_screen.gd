@@ -6,6 +6,7 @@ signal closed
 
 ## Stash boxes per row; fewer and bigger boxes read better than a dense grid.
 const STASH_COLUMNS: int = 6
+const PRIMARY_NOTICE: String = "Your Primary stays in storage during runs."
 const ACCENT: Color = Color("7fd6e0")
 const DIM: Color = Color("8fa3a8")
 
@@ -178,10 +179,8 @@ func _refresh() -> void:
 	(%Name as NameField).open(profile)
 	%Level.text = "Level %d" % profile.level
 	var indices: Array[int] = visible_stash_indices()
-	var count: int = 0
-	for item: Dictionary in profile.stash:
-		count += 0 if item.is_empty() else 1
-	%Count.text = "Stash %d / 60" % count
+	var count: int = CharacterProfile.STASH_SIZE - profile.free_stash_slots()
+	%Count.text = "Stash %d / %d" % [count, CharacterProfile.STASH_SIZE]
 	for button: Button in slots.buttons:
 		var item: Dictionary = profile.loadout[slots.slot_of(button)]
 		_paint_button(button, item)
@@ -230,6 +229,13 @@ func _inspect(index: int, slot: StringName) -> void:
 		return
 	var item: Dictionary = profile.stash[index] if index >= 0 else profile.loadout.get(slot, {})
 	var compare_slot: StringName = Inventory.slot_for(item)
+	if slot == &"primary" or compare_slot == &"primary":
+		%Status.text = PRIMARY_NOTICE
+	elif %Status.text == PRIMARY_NOTICE:
+		var filtered: bool = (
+			visible_stash_indices().is_empty() and profile.free_stash_slots() < CharacterProfile.STASH_SIZE
+		)
+		%Status.text = "No items match these filters" if filtered else "Select an item to inspect"
 	if compare_slot.is_empty():
 		compare_slot = StringName(String(item.get("base", "")).get_slice("_", 0))
 	tooltip.show_item(item, profile.loadout.get(compare_slot, {}))

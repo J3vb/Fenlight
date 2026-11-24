@@ -54,6 +54,8 @@ static func _hit_zombie(
 	if share <= 0.0 or is_blocked(space, origin + LIFT, target):
 		return MISSED
 	var amount: float = data.centre_damage * share
+	if attacker:
+		amount *= attacker.get_stat(&"grenade_damage")
 	if zombie.data and zombie.data.burst_by_explosives:
 		amount = maxf(amount, zombie.health.current)
 	var info: DamageInfo = DamageInfo.create(amount, attacker, DamageInfo.Type.EXPLOSIVE)

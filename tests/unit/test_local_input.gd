@@ -100,3 +100,39 @@ func test_toggle_sprint_ends_when_running_stops_or_aiming() -> void:
 	_press(&"ads")
 	assert_false(_local.sample(5).has(InputFrame.SPRINT), "aiming ends the sprint")
 	Input.action_release(&"move_forward")
+
+
+func test_gameplay_actions_wait_for_the_dialog_and_its_held_click_to_clear() -> void:
+	var dialog: ConfirmationDialog = ConfirmationDialog.new()
+	add_child(dialog)
+	_local.block_for_dialog(dialog)
+	Input.action_press(&"fire")
+	Input.action_press(&"lethal")
+	Input.action_press(&"interact")
+	assert_eq(_local.sample(1).buttons, 0)
+	var action: InputEventAction = InputEventAction.new()
+	action.action = &"melee"
+	action.pressed = true
+	_local._unhandled_input(action)
+	dialog.free()
+	Input.action_press(&"move_forward")
+	Input.action_press(&"ads")
+	var resumed: InputFrame = _local.sample(2)
+	assert_lt(resumed.move.y, 0.0, "movement resumes with interact still held")
+	assert_true(resumed.has(InputFrame.ADS), "fresh actions work immediately")
+	assert_false(
+		resumed.has(
+			InputFrame.FIRE | InputFrame.LETHAL | InputFrame.INTERACT_HELD | InputFrame.INTERACT | InputFrame.MELEE
+		)
+	)
+	Input.action_release(&"ads")
+	Input.action_release(&"move_forward")
+	Input.action_release(&"interact")
+	Input.action_release(&"fire")
+	Input.action_release(&"lethal")
+	assert_eq(_local.sample(3).buttons, 0)
+	await wait_physics_frames(2)
+	assert_false(_local.sample(4).has(InputFrame.MELEE), "the queued melee press was discarded")
+	Input.action_press(&"fire")
+	assert_true(_local.sample(5).has(InputFrame.FIRE))
+	Input.action_release(&"fire")

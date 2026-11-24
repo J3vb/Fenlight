@@ -57,6 +57,12 @@ func test_a_client_press_readies_and_a_second_press_unreadies() -> void:
 	assert_eq(board(client).get_prompt(on_client()), "Ready: Halcyon Labs [F]")
 
 
+func test_board_shows_the_local_characters_available_stash_space() -> void:
+	client.profile = CharacterProfile.new()
+	client.profile.stash[3] = {"uid": "stored"}
+	assert_string_contains(board(client).get_prompt(on_client()), "59 free stash slots")
+
+
 func test_any_ready_player_can_cancel_the_countdown() -> void:
 	late = make_side("InteractLate")
 	late.deploy_vote = DeployVote.new()

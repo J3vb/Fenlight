@@ -39,7 +39,7 @@ func pay_repair(player: Player) -> void:
 	if amount <= 0:
 		return
 	_repair_points[player] = earned + amount
-	player.wallet.add(amount)
+	player.wallet.earn(amount)
 
 
 func _on_player_spawned(player: Player) -> void:
@@ -56,7 +56,7 @@ func _on_player_spawned(player: Player) -> void:
 func _on_enemy_damaged(_enemy: Node3D, info: DamageInfo) -> void:
 	var player: Player = info.attacker as Player
 	if multiplayer.is_server() and player and player.multiplayer == multiplayer:
-		player.wallet.add(_boosted(player, rules.points_per_hit * _multiplier()))
+		player.wallet.earn(_boosted(player, rules.points_per_hit * _multiplier()))
 
 
 func _on_enemy_killed(_enemy: Node3D, info: DamageInfo) -> void:
@@ -68,7 +68,7 @@ func _on_enemy_killed(_enemy: Node3D, info: DamageInfo) -> void:
 		amount += rules.headshot_kill_bonus
 	elif info.damage_type == DamageInfo.Type.MELEE:
 		amount += rules.melee_kill_bonus
-	player.wallet.add(_boosted(player, amount * _multiplier()))
+	player.wallet.earn(_boosted(player, amount * _multiplier()))
 
 
 func _multiplier() -> int:
@@ -83,7 +83,7 @@ func _on_round_ended(_round_number: int) -> void:
 		return
 	for node: Node in get_tree().get_nodes_in_group(&"players"):
 		if node.multiplayer == multiplayer:
-			(node as Player).wallet.add(_boosted(node as Player, rules.round_clear_bonus))
+			(node as Player).wallet.earn(_boosted(node as Player, rules.round_clear_bonus))
 
 
 ## Earned points times the player's points_earned stat (Scrounger, gear), carrying the fraction.

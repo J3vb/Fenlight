@@ -50,3 +50,20 @@ func test_resupply_refills_grenades() -> void:
 	var pickup: PowerUp = session.power_up_drops.drop(resupply, player.global_position + Vector3(5, 0, 0))
 	pickup.collect(player)
 	assert_eq(player.grenades.count, player.grenades.data.carry)
+
+
+func test_rolled_implant_increases_frag_damage_to_an_enemy() -> void:
+	var zombie: Zombie = session.spawner.spawn(WALKER, 1, session.wave_rules)
+	zombie.set_physics_process(false)
+	zombie.global_position = Vector3(34, 0, 51)
+	await wait_physics_frames(2)
+	var centre: Vector3 = zombie.global_position + Blast.CHEST
+	var data: ThrowableData = player.grenades.data
+	zombie.health.reset(5000.0)
+	Blast.apply(session.level, centre, data, player)
+	var ordinary: float = 5000.0 - zombie.health.current
+	assert_almost_eq(ordinary, data.centre_damage, 0.01)
+	player.equip_gear([{"uid": "rolled", "aff": [["grenade_damage", 1, 1.0]]}])
+	zombie.health.reset(5000.0)
+	Blast.apply(session.level, centre, data, player)
+	assert_almost_eq(5000.0 - zombie.health.current, ordinary * 1.20, 0.01)

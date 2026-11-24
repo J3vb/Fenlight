@@ -508,6 +508,7 @@ Design changes since the Nov 14, 2026 copy, newest first. Add one row in the sam
 
 | Date | Area | Change | Detail |
 | --- | --- | --- | --- |
+| 2026-11-23 | Run rewards | Pack pickups reserve stash space, and the player chooses any exchange. The grenade-damage implant increases frag damage against enemies. | [Run decisions](../DECISIONS.md) |
 | 2026-11-21 | Field abilities | The Sentry is named Watchdog (provisional); its turret shoots heads for 0.4 of max health every 0.6 s within 25 m, so three shots kill anything. The picked ability is chosen under the Research tree. | [field-abilities.md](../plans/field-abilities.md) |
 | 2026-11-20 | Loot | Headgear, gloves, backpack and boots now drop (Salvager Cap, Gloves, Pack, Boots), each as often as a vest; guns fall to about 39% of drops. Each rolls 2 prefixes and 2 suffixes from its own pool, with three new lines (Steady aim, Recoil grip, Quick hands). Flat max health from gear and skills is capped at +100. Sets become the five armour pieces. | [affixes.md](affixes.md#gear-affixes), [four-gear-slots plan](../plans/four-gear-slots.md) |
 | 2026-11-20 | Town | The stall keepers come alive (provisional look): each has their own idle (Odile leans on her counter, Teun files a part at his vice, Lien types and checks her monitors, Raes stands arms crossed by the board), turns their head to you within 4 m, and greets you with a nod and a raised hand when you talk. The line shows only for you. | [lore.md](lore.md#the-stall-keepers), plan lantern-post-vendors steps 3-4, PRs #393 #394 |

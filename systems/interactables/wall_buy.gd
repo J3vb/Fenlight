@@ -24,11 +24,16 @@ func _ready() -> void:
 
 func get_prompt(player: Player) -> String:
 	var owned: Weapon = _owned(player)
-	if once_per_player:
-		return "" if owned or taken_by.has(player.net_id) else "Take %s [F]" % weapon.display_name
+	if once_per_player and (owned or taken_by.has(player.net_id)):
+		return ""
 	if owned:
+		if owned.instance.ammo_reserve >= owned.data.max_reserve:
+			return "%s reserve full" % owned.data.display_name
 		return "Buy ammo for %s [F]  %d" % [owned.data.display_name, ammo_cost(owned.data.id)]
-	return "Buy %s [F]  %d" % [weapon.display_name, weapon.cost]
+	var offer: String = "Take %s" % weapon.display_name if once_per_player else "Buy %s" % weapon.display_name
+	if player.weapons.weapons.size() >= player.weapons.max_slots and player.weapons.current:
+		offer = "Swap %s for %s" % [player.weapons.current.data.display_name, weapon.display_name]
+	return offer + (" [F]" if once_per_player else " [F]  %d" % weapon.cost)
 
 
 func ammo_cost(owned_id: StringName) -> int:
@@ -79,11 +84,18 @@ func check_facts(facts: Dictionary) -> bool:
 	if not (facts.get("owned") is StringName and facts.get("slot") is int and facts.get("full") is bool):
 		return false
 	var owned: StringName = facts.owned
-	return owned == &"" or owned == weapon.id or (weapon.upgraded != null and owned == weapon.upgraded.id)
+	return owned == &"" or _matches(owned)
+
+
+func _matches(id: StringName) -> bool:
+	return id == weapon.id or (weapon.upgraded != null and id == weapon.upgraded.id)
 
 
 func _owned(player: Player) -> Weapon:
+	var held: Weapon = player.weapons.current
+	if held and _matches(held.data.id):
+		return held
 	for owned: Weapon in player.weapons.weapons:
-		if owned.data.id == weapon.id or (weapon.upgraded != null and owned.data.id == weapon.upgraded.id):
+		if _matches(owned.data.id):
 			return owned
 	return null

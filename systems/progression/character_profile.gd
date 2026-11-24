@@ -43,6 +43,10 @@ func _init() -> void:
 		stash.append({})
 
 
+func free_stash_slots() -> int:
+	return stash.count({})
+
+
 func to_dict() -> Dictionary:
 	var data: Dictionary = _unknown.duplicate(true)
 	data["id"] = String(id)

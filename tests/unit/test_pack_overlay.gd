@@ -28,9 +28,11 @@ func before_each() -> void:
 
 
 func test_changed_updates_all_six_slots_and_tooltip() -> void:
+	session.profile = CharacterProfile.new()
 	assert_eq(overlay.count.text, "Pack 0 / 6 [Tab]")
 	service.pack.add({"uid": "gear", "base": "vest_light", "rar": "epic", "ilvl": 17})
 	assert_eq(overlay.count.text, "Pack 1 / 6 [Tab]")
+	assert_eq(overlay.stash_hint.text, "Stash · 1 reserved for this Pack · 59 still free")
 	assert_eq(overlay.slots.size(), 6)
 	assert_string_contains(overlay.slots[0].text, "Lantern Rig")
 	assert_eq(overlay.slots[5].text, "Empty")

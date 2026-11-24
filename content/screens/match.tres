@@ -9,4 +9,4 @@ root = true
 captures_mouse = true
 loading_screen = &"loading"
 title = "Halcyon Labs"
-tips = Array[String](["Every hit pays points. A headshot kill pays the most.", "Loot is yours alone: only you see your drops, and everything in your Pack goes home with you.", "The Specimen Vault gives a random gun. It might be the best thing you find all run.", "From round 10, every 5 rounds, an exfil hatch opens. Hold it for 60 seconds to leave with a bonus.", "Serums from the MedDispenser last until you go down.", "Opening doors spreads the zombies out. Pick your route before you spend."])
+tips = Array[String](["Every hit pays points. A headshot kill pays the most.", "Your Pack goes home even on death. If stash space runs out, choose what to keep when you pick up loot.", "The Specimen Vault gives a random gun. It might be the best thing you find all run.", "From round 10, every 5 rounds, an exfil hatch opens. Hold it for 60 seconds to leave with 50% extra run XP, or stay for the next wave.", "Serums from the MedDispenser last until you go down.", "Opening doors spreads the zombies out. Pick your route before you spend."])

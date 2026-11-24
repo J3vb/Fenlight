@@ -40,6 +40,8 @@ func _doors() -> Array[Door]:
 func test_buying_a_door_opens_its_area() -> void:
 	player.wallet.set_points(5000)
 	var door: Door = _door("GuardPostDoor")
+	assert_eq(door.get_prompt(player), "Open Guard Post [F]  750")
+	assert_eq(_door("MessHallDebris").get_prompt(player), "Open Mess Hall [F]  1000")
 	door.interact(player)
 	assert_eq(player.wallet.points, 4250, "door cost 750")
 	assert_true(door.is_open)
@@ -125,8 +127,11 @@ func test_wall_buy_sells_ammo_and_guns() -> void:
 	player.wallet.set_points(5000)
 	var rifle: Weapon = player.weapons.weapons[1]
 	rifle.instance.ammo_reserve = 0
+	assert_string_contains(wall_buy.get_prompt(player), "Buy ammo for AR-17 [F]")
 	wall_buy.interact(player)
 	assert_eq(rifle.instance.ammo_reserve, rifle.data.max_reserve, "ammo refilled")
+	rifle.instance.ammo_in_mag = 0
+	assert_eq(wall_buy.get_prompt(player), "AR-17 reserve full")
 	assert_eq(player.wallet.points, 4400, "ammo costs half")
 	wall_buy.weapon = rifle.data.duplicate() as WeaponData
 	wall_buy.interact(player)
@@ -135,6 +140,30 @@ func test_wall_buy_sells_ammo_and_guns() -> void:
 	wall_buy.interact(player)
 	assert_eq(player.weapons.current.data, wall_buy.weapon, "new gun in hand")
 	assert_eq(player.wallet.points, 4400 - wall_buy.weapon.cost, "gun costs its WeaponData cost")
+
+
+func test_wall_buy_refills_the_held_copy_first() -> void:
+	var rack: WallBuy = level.find_child("WallBuyRifle", true, false) as WallBuy
+	var holstered: Weapon = player.weapons.current
+	holstered.instance.ammo_reserve = holstered.data.max_reserve
+	player.weapons.max_slots = 3
+	var held: Weapon = player.weapons.give(holstered.data)
+	held.instance.ammo_reserve = 0
+	player.wallet.set_points(1000)
+	assert_string_contains(rack.get_prompt(player), "Buy ammo for AR-17 [F]")
+	rack.interact(player)
+	assert_eq(held.instance.ammo_reserve, held.data.max_reserve)
+	assert_eq(player.wallet.points, 400)
+
+
+func test_free_rack_names_the_gun_traded_when_both_slots_are_full() -> void:
+	var rack: WallBuy = level.find_child("CryoRack", true, false) as WallBuy
+	assert_eq(rack.get_prompt(player), "Swap AR-17 for Cryo Lance [F]")
+	var balance: int = player.wallet.points
+	rack.interact(player)
+	assert_eq(player.weapons.current.data.id, &"cryo_lance")
+	assert_eq(player.wallet.points, balance)
+	assert_eq(rack.get_prompt(player), "")
 
 
 func test_brenner_wall_buy_sells_the_shotgun() -> void:
@@ -147,6 +176,9 @@ func test_brenner_wall_buy_sells_the_shotgun() -> void:
 	await wait_physics_frames(3)
 	assert_eq(player.focus, wall_buy as Interactable, "board under the crosshair")
 	player.wallet.set_points(1000)
+	assert_eq(wall_buy.get_prompt(player), "Swap AR-17 for BR-12 [F]  750")
+	player.weapons.equip(0)
+	assert_eq(wall_buy.get_prompt(player), "Swap M-9 Service Pistol for BR-12 [F]  750")
 	wall_buy.interact(player)
 	assert_eq(player.weapons.current.data.id, &"brenner_trench", "shotgun in hand")
 	assert_eq(player.weapons.weapons.size(), 2, "two slots: it replaced the gun in hand")
@@ -209,3 +241,23 @@ func test_vent_grates_open_only_with_their_areas() -> void:
 	_door("MessHallDebris").interact(player)
 	assert_true(mess_grate.is_open, "the Mess Hall grate opens with the Mess Hall")
 	assert_false(containment_grate.is_open, "the Containment grate waits for its own door")
+
+
+func test_squad_spawns_clear_and_the_first_player_faces_into_the_dock() -> void:
+	var spawn: Transform3D = level.get_player_spawn()
+	var space: PhysicsDirectSpaceState3D = level.get_world_3d().direct_space_state
+	var start: Vector3 = spawn.origin + Vector3.UP * 1.5
+	var sight: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+		start, start - spawn.basis.z * 5.0, Layers.WORLD
+	)
+	assert_true(space.intersect_ray(sight).is_empty(), "the view opens into the room")
+	var capsule: CapsuleShape3D = CapsuleShape3D.new()
+	capsule.radius = 0.4
+	capsule.height = 1.8
+	var body: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
+	body.shape = capsule
+	body.collision_mask = Layers.WORLD
+	for index: int in 8:
+		var spot: Vector3 = spawn.origin + spawn.basis.x * PlayerSpawner.SPAWN_SPACING * index
+		body.transform.origin = spot + Vector3.UP * 0.95
+		assert_true(space.intersect_shape(body).is_empty(), "spawn %d clears the scenery" % index)

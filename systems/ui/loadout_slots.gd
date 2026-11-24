@@ -32,7 +32,11 @@ func slot_of(button: Button) -> StringName:
 
 
 func label(button: Button, item_name: String) -> void:
-	button.text = "%s\n%s" % [String(slot_of(button)).capitalize(), item_name]
+	var slot: StringName = slot_of(button)
+	var heading: String = "Primary · stored" if slot == &"primary" else String(slot).capitalize()
+	button.text = "%s\n%s" % [heading, item_name]
+	if slot == &"primary":
+		button.tooltip_text = "Stored only. This Primary cannot be claimed during a run in this build."
 
 
 ## The right-column slot a stash row's first cell steps left to.
